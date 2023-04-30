@@ -5,7 +5,7 @@ description = "A Tauri Database Client"
 authors = ["jason@silvermast.io"]
 license = "MIT"
 repository = "https://github.com/silvermast/taurbee"
-edition = "2023"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
