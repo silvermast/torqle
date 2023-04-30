@@ -1,0 +1,25 @@
+@import '@mdi/font/css/materialdesignicons.css';
+
+.v-theme--dark {
+
+/* Finally, set the CodeMirror gutter and line numbers to a darker color */
+  .cm-gutters {
+    background-color: #1E1E1E;
+    border: none;
+  }
+  .cm-linenumber {
+    color: #666666;
+  }
+  .cm-line.cm-activeLine {
+    background-color: #ffffff10;
+  }
+  .cm-activeLineGutter {
+    background-color: #ffffff10;
+  }
+  .cm-focused .cm-scroller .cm-selectionLayer .cm-selectionBackground {
+    background-color: #ffffff20;
+  }
+  .cm-cursor {
+    border-color: #666666;
+  }
+}
