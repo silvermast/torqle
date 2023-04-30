@@ -5,7 +5,7 @@ import QueryView from './components/QueryView.vue';
 
 // import Greet from './components/Greet.vue';
 
-let connection = ref({ fll: true });
+let connection = ref();
 
 </script>
 
