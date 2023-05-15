@@ -1,18 +1,27 @@
 <script setup>
 import { ref } from 'vue';
-import ConnectView from './components/ConnectView.vue';
-import QueryView from './components/QueryView.vue';
-
-// import Greet from './components/Greet.vue';
+import ConnectView from './views/ConnectView.vue';
+import QueryView from './views/QueryView.vue';
+import Snacks from './components/Snacks.vue';
 
 let connection = ref();
+
+function connect($event) {
+  console.log('received connect');
+  connection.value = { ...$event }
+}
+function disconnect($event) {
+  console.log('received disconnect');
+  connection.value = null;
+}
 
 </script>
 
 <template>
   <v-app>
-    <ConnectView v-if="!connection" @connect="$event => connection = { ...$event }" />
-    <QueryView v-else v-bind="{ connection }" @disconnect="connection = null" />
+    <Snacks />
+    <ConnectView v-if="!connection" @connect="connect" />
+    <QueryView v-else v-bind="{ connection }" @disconnect="disconnect" />
   </v-app>
 </template>
 

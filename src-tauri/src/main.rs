@@ -1,39 +1,54 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use tauri::{Context, CustomMenuItem, Menu, MenuItem, Submenu, Manager, Window};
+use std::{collections::HashMap, sync::Mutex};
+
+use connectors::{ClientConnection, QueryError, QueryResult};
+use tauri::{CustomMenuItem, Menu, Submenu, Window, State};
 use uuid::Uuid;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+mod connectors;
+
 #[tauri::command]
-fn query(query: &str) -> String {
-    format!("{}", query)
+fn connect(window: Window, driver_opts: HashMap<String, String>, state_conn: State<Connections>) -> Result<bool, String> {
+    let conn = connectors::mysql::Mysql::connect(driver_opts).or_else(|why| Err(why.to_string()))?;
+    let mut connections = state_conn.0.try_lock().or_else(|why| Err(why.to_string()))?;
+    connections.insert(window.label().to_string(), conn);
+    Ok(true)
 }
 
-// #[tauri::command]
-// fn setup() -> String {
-//     let appLocalDataDir = resolve_path(BaseDirectory::AppLocalData);
-//     let context = tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json");
-//     let path = resolve_path(
-//         context.config(),
-//         context.package_info(),
-//         &Env::default(),
-//         "data",
-//         Some(BaseDirectory::AppLocalData))
-//       .expect("failed to resolve path");
-//     if !fs::metadata(path).is_dir() {
-//         fs::create_dir_all(path);
-//     }
-//     format!("Success")
-// }
+#[tauri::command]
+fn query(window: Window, query: String, state_conn: State<Connections>) -> Result<QueryResult, QueryError> {
+    let connections = state_conn.0.try_lock().or_else(|why| Err(QueryError { error: why.to_string() }))?;
+    let uuid: String = window.label().into();
+    let conn = connections.get(&uuid).ok_or(QueryError { error: "No connection found bound to the window!".to_string() })?;
+    conn.query(query)
+}
 
+#[tauri::command]
+fn test_connection(driver_opts: HashMap<String, String>) -> Result<String, String> {
+    match connectors::mysql::Mysql::test(driver_opts) {
+        Ok(_) => Ok("The connection test was a success!".to_string()),
+        Err(why) => Err(why.to_string()),
+    }
+}
+
+#[tauri::command]
+fn change_schema(window: Window, state_conn: State<Connections>, schema: String) -> Result<bool, String> {
+    let mut connections = state_conn.0.try_lock().or_else(|why| Err(why.to_string()))?;
+    let uuid: String = window.label().into();
+    let conn = connections.get(&uuid).ok_or("No connection found bound to the window!".to_string())?;
+    let mut conn_cloned = conn.clone();
+    conn_cloned.change_schema(schema).or_else(|why| Err(why.to_string()))?;
+    connections.insert(window.label().to_string(), conn_cloned);
+    Ok(true)
+}
 
 fn build_menu() -> Menu {
-    
+
     // here `"quit".to_string()` defines the menu item id, and the second parameter is the menu item label.
     let new_window = CustomMenuItem::new("new_window".to_string(), "New Window").accelerator("cmdOrCtrl+N");
     let close_window = CustomMenuItem::new("close_window".to_string(), "Close Window").accelerator("cmdOrCtrl+W");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit").accelerator("cmdOrCtrl+Q");
-    
 
     let file_submenu = Submenu::new("File", Menu::new()
     .add_item(new_window)
@@ -57,14 +72,17 @@ fn build_menu() -> Menu {
 
 }
 
+struct Connections(Mutex<HashMap<String, connectors::mysql::Mysql>>);
+
 fn main() {
-    let app_name: &str = "Taurbee";
     tauri::Builder::default()
+        .manage(Connections(Default::default()))
         .setup(|app| {
             let local_data_dir = app.path_resolver().app_local_data_dir().unwrap();
             if !local_data_dir.exists() {
                 std::fs::create_dir_all(&local_data_dir)?;
             }
+
             Ok(())
         })
         .menu(build_menu())
@@ -76,6 +94,7 @@ fn main() {
                         Uuid::new_v4().to_string(),
                         tauri::WindowUrl::App("index.html".into()),
                     ).build().unwrap();
+                    window.set_title("New Connection".into()).expect("Failed to set window title");
                 }
                 "close_window" => {
                     event.window().close().unwrap();
@@ -86,7 +105,7 @@ fn main() {
                 _ => {}
             }
           })
-        .invoke_handler(tauri::generate_handler![query])
+        .invoke_handler(tauri::generate_handler![connect, test_connection, query, change_schema])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

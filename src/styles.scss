@@ -22,4 +22,9 @@
   .cm-cursor {
     border-color: #666666;
   }
+  .cm-editor {
+    .cm-content {
+      caret-color: #666666;
+    }
+  }
 }
