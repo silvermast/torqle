@@ -16,7 +16,7 @@ const vuetify = createVuetify({
   components,
   directives,
   icons: {
-    iconfont: 'mdi',
+    iconfont: 'mdi', // https://pictogrammers.com/library/mdi/
   },
   theme: {
     defaultTheme: isDarkMode ? 'dark' : 'light'

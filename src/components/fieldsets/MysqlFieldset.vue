@@ -47,12 +47,12 @@ const port = computed({
 <template>
   <v-row>
     <v-col cols="8">
-      <v-text-field density="compact" v-model="host" variant="underlined" label="MySQL Host"></v-text-field>
+      <v-text-field density="compact" v-model="host" variant="outlined" label="MySQL Host"></v-text-field>
     </v-col>
     <v-col cols="4">
-      <v-text-field density="compact" v-model="port" variant="underlined" label="MySQL Port"></v-text-field>
+      <v-text-field density="compact" v-model="port" variant="outlined" label="MySQL Port"></v-text-field>
     </v-col>
   </v-row>
-  <v-text-field density="compact" v-model="user" variant="underlined" label="MySQL User"></v-text-field>
-  <v-text-field density="compact" v-model="password" type="password" variant="underlined" label="MySQL Password"></v-text-field>
+  <v-text-field density="compact" v-model="user" variant="outlined" label="MySQL User"></v-text-field>
+  <v-text-field density="compact" v-model="password" type="password" variant="outlined" label="MySQL Password"></v-text-field>
 </template>

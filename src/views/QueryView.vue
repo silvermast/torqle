@@ -2,17 +2,21 @@
 import { ref, computed, watch } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import SqlEditor from '~/components/SqlEditor.vue';
-import Connector from '~/services/Connector.js';
+import { Connector } from '~/services/Connector.js';
 
 const emit = defineEmits(['disconnect']);
 
 const props = defineProps({
-  connection: { type: Object, required: true },
+  connector: { type: Connector, required: true },
   editorLang: { type: String, default: 'sql' },
 });
 
-const selectedSchema = ref(props.connection?.dbInfo?.database ?? null);
+/**
+ * @type {Connector}
+ */
+const connector = props.connector;
 
+const selectedSchema = ref(connector.getSchema());
 const tableList = ref();
 const schemaList = ref();
 const queryText = ref();
@@ -25,34 +29,26 @@ const showResultsCount = computed(() => resultsCount.value !== undefined);
 const showResultsTime = computed(() => resultsTime.value !== undefined);
 
 watch(selectedSchema, async (newValue) => {
-  await Connector.changeSchema(newValue);
+  await connector.changeSchema(newValue);
   loadTables();
 });
 
+watch(queryText, () => console.log('queryText:', queryText.value));
+
 async function loadSchemas() {
-  console.log('calling loadSchemas');
   try {
-    const result = await Connector.query('SHOW DATABASES');
-    console.log('loadSchemas', result);
-    schemaList.value = result.rows.map(row => row.Database);
+    schemaList.value = await connector.loadSchemas();
   } catch (e) {
     makeSpicySnack(e);
   }
 }
+
 async function loadTables() {
-  console.log('calling loadTables');
   if (!selectedSchema.value) {
     return;
   }
   try {
-    const result = await Connector.query('SHOW TABLES');
-    console.log('loadTables', result)
-    if (result.rows.length > 0) {
-      const [resultKey] = Object.keys(result.rows[0]);
-      tableList.value = result.rows.map(row => row[resultKey]);
-    } else {
-      tableList.value = [];
-    }
+    tableList.value = await connector.loadTables();
   } catch (e) {
     makeSpicySnack(e);
   }
@@ -62,7 +58,7 @@ async function runQuery() {
   isQuerying.value = true;
 
   try {
-    const queryResult = await Connector.query(queryText.value);
+    const queryResult = await connector.query(queryText.value);
     results.value = queryResult.rows;
     resultsCount.value = queryResult.num_rows;
     resultsTime.value = queryResult.elapsed_ms;
@@ -74,7 +70,7 @@ async function runQuery() {
 }
 
 async function disconnect() {
-  await Connector.disconnect();
+  await connector.disconnect();
   emit('disconnect');
   makeHappySnack('Successfully disconnected.');
 }
@@ -89,6 +85,8 @@ const actionHeight = 32;
 const appBarHeight = 48;
 
 function startResize($event) {
+  $event.preventDefault();
+  $event.stopPropagation();
   const isSidebar = $event.target.id === 'sidebar-resize-handle';
   const resizeTarget = isSidebar ? elSidebar : elEditor;
   const resizeMetric = isSidebar ? 'pageX' : 'clientY';
@@ -106,7 +104,6 @@ function startResize($event) {
   }
 
   function stopResize(e) {
-    console.log('STOP RESIZE', e);
     document.removeEventListener('mousemove', resize); // stop resizing
     $event.target.removeEventListener('mouseup', stopResize); // cleanup
     document.removeEventListener('mouseup', stopResize); // cleanup
@@ -117,13 +114,17 @@ function startResize($event) {
   document.addEventListener('mouseup', stopResize);
 }
 
+function viewKeypress($event) {
+  console.log($event);
+}
+
 loadSchemas();
 loadTables();
 
 </script>
 
 <template>
-  <v-app-bar :color="connection.color ?? 'primary'" density="compact">
+  <v-app-bar density="compact" color="secondary">
     <div class="schema-selector-container ml-1">
       <v-select density="compact" v-model="selectedSchema" :items="schemaList" item-title="Schema" hide-details
         variant="outlined" label="Select Schema" no-data-text="No schemas found" single-line />
@@ -131,7 +132,7 @@ loadTables();
     <v-btn size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="disconnect">Disconnect</v-btn>
   </v-app-bar>
   <main>
-    <section id="view--sidebar" style="width:256px;" ref="elSidebar">
+    <section id="view--sidebar" style="width:256px; min-width:256px;" ref="elSidebar">
       <v-text-field density="compact" label="Filter Tables" clearable hide-details single-line></v-text-field>
       <v-list id="table-list">
         <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="console.log(i)"
@@ -154,16 +155,15 @@ loadTables();
       </div>
 
       <div id="view--results">
+        <v-overlay v-model="isQuerying" contained>
+          <v-icon icon="loading" size="x-large" />
+        </v-overlay>
         <table v-if="results">
           <thead>
-            <tr>
-              <th v-for="value, field in results[0]" v-text="field"></th>
-            </tr>
+            <tr><th v-for="value, field in results[0]" v-text="field" /></tr>
           </thead>
           <tbody>
-            <tr v-for="row in results">
-              <td v-for="value in row" v-text="value"></td>
-            </tr>
+            <tr v-for="row in results"><td v-for="value in row" v-text="value" /></tr>
           </tbody>
         </table>
       </div>
@@ -180,7 +180,7 @@ loadTables();
 <style lang="scss" scoped>
 $navHeight: 48px;
 $actionHeight: 32px;
-$thHeight: 32px;
+$handleThickness: 6px;
 
 main {
   margin-top: $navHeight;
@@ -197,18 +197,19 @@ main {
 
   section#view--sidebar {
     width: inherit;
-    overflow-y: auto;
     position: relative;
     height: 100%;
 
     #table-list {
       height: calc(100% - 42px);
+      overflow-y: auto;
+      overflow-x: clip;
     }
 
     .li-table {
-      height: 24px;
+      height: 28px;
       min-height: 16px;
-      padding: 2px 16px;
+      padding: 4px 16px;
     }
 
   }
@@ -223,6 +224,7 @@ main {
     flex-direction: column;
     flex-wrap: nowrap;
     flex-basis: 100%;
+    overflow: hidden;
 
     #view--editor {
       overflow: auto;
@@ -243,7 +245,7 @@ main {
         border-spacing: 0;
 
         th {
-          height: $thHeight;
+          height: 2em;
           position: -webkit-sticky;
           /* for Safari */
           position: sticky;
@@ -256,6 +258,12 @@ main {
         td {
           padding: 2px 4px;
           border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+          overflow-x: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        td {
+          font-size: 0.8em;
         }
       }
     }
@@ -274,7 +282,8 @@ main {
 
 #editor-resize-handle {
   box-sizing: border-box;
-  height: 6px;
+  height: $handleThickness;
+  min-height: $handleThickness;
   background: rgba(var(--v-theme-primary));
   border: none;
   cursor: row-resize;
@@ -282,10 +291,12 @@ main {
 
 #sidebar-resize-handle {
   height: 100%;
-  width: 6px;
+  width: $handleThickness;
+  min-width: $handleThickness;
   box-sizing: border-box;
   background: rgba(var(--v-theme-primary));
   border: none;
   cursor: col-resize;
   // cursor: ew-resize;
-}</style>
+}
+</style>

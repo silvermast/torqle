@@ -1,28 +1,38 @@
 <script setup>
 import { v4 as uuidv4 } from 'uuid';
-import { ref, computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { mdiDotsVertical } from "@mdi/js";
-import Connector from '~/services/Connector.js';
+import { Connector } from '~/services/Connector.js';
 import { fetchFavorites, storeFavorites } from '~/services/Favorites.js';
 import { makeSnack, hideSnack } from '~/components/Snacks.vue';
 
+import { TestConnector } from '~/services/TestConnector.js';
+import { MysqlConnector } from '~/services/MysqlConnector.js';
+import { SqliteConnector } from '~/services/SqliteConnector.js';
+
+import TestFieldset from '~/components/fieldsets/TestFieldset.vue';
+import SqliteFieldset from '~/components/fieldsets/SqliteFieldset.vue';
 import MysqlFieldset from '~/components/fieldsets/MysqlFieldset.vue';
 
-const typeOptions = [
-  { label: 'MySQL', value: 'mysql' },
-  { label: 'PostgreSQL', value: 'postgresql' },
-  { label: 'MongoDB', value: 'mongodb' },
-  { label: 'SQLite', value: 'sqlite' },
+const drivers = [
+  { label: 'Test', connector: TestConnector, fieldset: TestFieldset },
+  { label: 'MySQL', connector: MysqlConnector, fieldset: MysqlFieldset },
+  // { label: 'PostgreSQL', value: 'Postgresql' },
+  // { label: 'MongoDB', value: 'Mongodb' },
+  { label: 'SQLite', connector: SqliteConnector, fieldset: SqliteFieldset },
 ];
 
 const connection = ref({
   id: null,
   title: '',
-  driver: null,
+  driverName: null,
   driverOpts: {},
 });
+
 const isConnecting = ref(false);
 const favorites = ref([]);
+
+const driver = computed(() => drivers.find(d => d.label === connection.value.driverName));
 
 const emit = defineEmits(['connect']);
 
@@ -62,7 +72,8 @@ async function saveFavorite() {
 async function testConnection() {
   hideSnack();
   try {
-    const rsp = await Connector.test(connection.value);
+    const connector = new driver.value.connector({ ...connection.value });
+    const rsp = await connector.test();
     makeSnack({ text: rsp, color: 'green' });
   } catch (e) {
     makeSnack({ text: e, color: 'red' });
@@ -71,8 +82,10 @@ async function testConnection() {
 
 async function connect() {
   try {
-    await Connector.connect(connection.value);
-    emit('connect', { ...connection.value });
+    const connector = new driver.value.connector({ ...connection.value });
+    await connector.connect();
+    document.title = connection.value.label;
+    emit('connect', connector);
   } catch (e) {
     makeSnack({ text: e, color: 'red' });
   }
@@ -83,6 +96,8 @@ function setConnection(payload) {
 }
 
 loadFavorites();
+
+document.title = 'New Connection';
 
 </script>
 
@@ -119,14 +134,14 @@ loadFavorites();
       <v-card max-width="500" class="mx-auto pa-5">
         <v-row>
           <v-col cols="8">
-            <v-text-field density="compact" v-model="connection.label" variant="underlined" label="Connection Label"></v-text-field>
+            <v-text-field density="compact" v-model="connection.label" variant="outlined" label="Connection Label"></v-text-field>
           </v-col>
           <v-col cols="4">
-            <v-select density="compact" v-model="connection.driver" :items="typeOptions" item-title="label" item-value="item" variant="underlined" label="Connection Type"></v-select>
+            <v-select density="compact" v-model="connection.driverName" :items="drivers" item-title="label" item-value="label" variant="outlined" label="Connection Type"></v-select>
           </v-col>
         </v-row>
         
-        <MysqlFieldset v-model="connection.driverOpts" />
+        <component v-if="driver" :is="driver.fieldset" v-model="connection.driverOpts" />
 
         <v-card-actions class="d-flex">
           <v-btn size="small" class="mr-auto" rounded @click="saveFavorite" variant="outlined">Save</v-btn>

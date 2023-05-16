@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { EditorView, keymap, gutter, lineNumbers } from '@codemirror/view';
+import { EditorView, keymap, gutter, lineNumbers, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState, Compartment, StateField } from '@codemirror/state';
 import { standardKeymap } from '@codemirror/commands';
 import { sql as langSql, MySQL as dialectMysql, PostgreSQL as dialectPostgresql, SQLite as dialectSqlite } from '@codemirror/lang-sql';
@@ -11,21 +11,62 @@ const dialects = {
   Mysql: dialectMysql,
 };
 
-const emit = defineEmits(['runSelected']);
+const emit = defineEmits(['runSelected', 'update:modelValue']);
 const props = defineProps({
   dialect: { type: String, default: 'Mysql' },
-})
+});
 
 const elContainer = ref();
+
+/**
+ * Based on the cursor position, return the highlighted text
+ * @param {Text} fullText 
+ * @param {Object}
+ */
+function getSelectedQuery(fullText, { from, to }) {
+  let startIndex = from;
+  let endIndex = to;
+  if (from === to) { // if no selection is made, pull the highlighted query
+    // look backwards for a delimiter (;) and set startIndex to that index + 1
+    for (let i = from - 1; i >= 0; i--) {
+      startIndex = i; // support returning 0 if there's only 1 query in the dataset
+      if (fullText[i] === ';') {
+        startIndex++; // increment by 1 so we don't include the ;
+        break;
+      }
+    }
+    // look forwards for a delimiter
+    for (let i = to; i <= fullText.length - 1; i++) {
+      endIndex = i;
+      if (fullText[i] === ';') {
+        break;
+      }
+    }
+  }
+
+  return fullText.slice(startIndex, endIndex);
+}
 
 const cmState = EditorState.create({
   doc: '',
   tabSize: 4,
   extensions: [
-    // EditorView.updateListener.of(e => {
-    //   console.log(e);
-    //   // emit('update:modelValue', cmState.doc.toString());
-    // }),
+    ViewPlugin.fromClass(class {
+      timeout = null;
+
+      constructor(view) {
+      }
+
+      /**
+       * @param {ViewUpdate} update 
+       */
+      update(update) {
+        clearTimeout(this.timeout);
+        this.timeout = setTimeout(() => {
+          emit('update:modelValue', getSelectedQuery(update.state.doc.toString(), update.state.selection.main));
+        }, 50);
+      }
+    }),
 
     /** @TODO - syntax highlighting not working? */
     /** @TODO - code completion */
@@ -46,7 +87,10 @@ const cmState = EditorState.create({
 });
 
 function runSelected() {
-  emit('runSelected',)
+  console.log(cmState.doc.toJSON());
+  // const cursorPosition = cmState.doc;
+  const fullText = cmState.doc.toString();
+  emit('runSelected', fullText);
 }
 
 // CodeMirror inits

@@ -4,15 +4,15 @@ import ConnectView from './views/ConnectView.vue';
 import QueryView from './views/QueryView.vue';
 import Snacks from './components/Snacks.vue';
 
-let connection = ref();
+let connector = ref();
 
 function connect($event) {
   console.log('received connect');
-  connection.value = { ...$event }
+  connector.value = $event;
 }
 function disconnect($event) {
   console.log('received disconnect');
-  connection.value = null;
+  connector.value = null;
 }
 
 </script>
@@ -20,8 +20,8 @@ function disconnect($event) {
 <template>
   <v-app>
     <Snacks />
-    <ConnectView v-if="!connection" @connect="connect" />
-    <QueryView v-else v-bind="{ connection }" @disconnect="disconnect" />
+    <ConnectView v-if="!connector" @connect="connect" />
+    <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
   </v-app>
 </template>
 
