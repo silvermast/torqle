@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::{collections::HashMap, sync::Mutex};
+use rand::{thread_rng, Rng};
+use users::get_current_username;
 
 use connectors::{ClientConnection, QueryError, QueryResult};
 use tauri::{CustomMenuItem, Menu, Submenu, Window, State};
@@ -41,6 +43,32 @@ fn change_schema(window: Window, state_conn: State<Connections>, schema: String)
     conn_cloned.change_schema(schema).or_else(|why| Err(why.to_string()))?;
     connections.insert(window.label().to_string(), conn_cloned);
     Ok(true)
+}
+
+#[tauri::command]
+fn fetch_key() -> Result<String, String> {
+    let service = "taurbee";
+    let account = match get_current_username() {
+        Some(username) => format!("{:?}", username),
+        None => "taurbee-default".to_string(),
+    };
+
+    match keytar::get_password(service, &account) {
+        Ok(pass) => Ok(pass.password),
+        Err(_why) => {
+            let new_key = generate_aes_256_key();
+            match keytar::set_password(service, &account, &new_key) {
+                Ok(_result) => Ok(new_key),
+                Err(why) => Err(why.to_string()),
+            }
+        }
+    }
+}
+
+fn generate_aes_256_key() -> String {
+    let mut key = [0u8; 32];
+    thread_rng().fill(&mut key);
+    hex::encode(key)
 }
 
 fn build_menu() -> Menu {
@@ -105,7 +133,7 @@ fn main() {
                 _ => {}
             }
           })
-        .invoke_handler(tauri::generate_handler![connect, test_connection, query, change_schema])
+        .invoke_handler(tauri::generate_handler![connect, test_connection, query, change_schema, fetch_key])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

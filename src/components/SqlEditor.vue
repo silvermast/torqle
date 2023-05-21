@@ -3,7 +3,8 @@ import { ref, onMounted } from 'vue';
 import { EditorView, keymap, gutter, lineNumbers, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState, Compartment, StateField } from '@codemirror/state';
 import { standardKeymap } from '@codemirror/commands';
-import { sql as langSql, MySQL as dialectMysql, PostgreSQL as dialectPostgresql, SQLite as dialectSqlite } from '@codemirror/lang-sql';
+import { LanguageSupport } from '@codemirror/language';
+import { sql as langSql, MySQL as dialectMysql, PostgreSQL as dialectPostgresql, SQLite as dialectSqlite, sql } from '@codemirror/lang-sql';
 
 const dialects = {
   Sqlite: dialectSqlite,
@@ -47,6 +48,8 @@ function getSelectedQuery(fullText, { from, to }) {
   return fullText.slice(startIndex, endIndex);
 }
 
+const languageSupport = new Compartment();
+const lang = new langSql();
 const cmState = EditorState.create({
   doc: '',
   tabSize: 4,
@@ -71,9 +74,10 @@ const cmState = EditorState.create({
     /** @TODO - syntax highlighting not working? */
     /** @TODO - code completion */
     // language
-    (new Compartment()).of(langSql({
-      dialect: dialects[props.dialect],
-    })),
+    languageSupport.of(lang),
+    // (new Compartment()).of(langSql({
+    //   dialect: dialects[props.dialect],
+    // })),
 
     // custom keymaps
     keymap.of([
@@ -87,9 +91,7 @@ const cmState = EditorState.create({
 });
 
 function runSelected() {
-  console.log(cmState.doc.toJSON());
   // const cursorPosition = cmState.doc;
-  const fullText = cmState.doc.toString();
   emit('runSelected', fullText);
 }
 
