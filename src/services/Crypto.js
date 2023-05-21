@@ -3,7 +3,14 @@ import { invoke } from '@tauri-apps/api/tauri';
 
 let key;
 async function fetchKey() {
-    return key ??= Buffer.from(await invoke('fetch_key'), 'hex');
+    if (!key) {
+        const result = await invoke('fetch_key');
+        if (!/^[a-f0-9]{32}$/.match(result)) {
+            throw new Error(result); // bubble up keytar error
+        }
+        key = Buffer.from(result, 'hex');
+    }
+    return key;
 }
 
 function isEncrypted(payload) {
