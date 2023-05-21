@@ -15,14 +15,24 @@ function disconnect($event) {
   connector.value = null;
 }
 
+const defaults = ref({
+  global: {
+    density: 'compact',
+  },
+  VRow: { dense: true },
+  VBtn: { size: 'small' },
+})
+
 </script>
 
 <template>
-  <v-app>
-    <Snacks />
-    <ConnectView v-if="!connector" @connect="connect" />
-    <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
-  </v-app>
+  <v-defaults-provider :defaults="vuetifyDefaults">
+    <v-app>
+      <Snacks />
+      <ConnectView v-if="!connector" @connect="connect" />
+      <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
+    </v-app>
+  </v-defaults-provider>
 </template>
 
 <style scoped>

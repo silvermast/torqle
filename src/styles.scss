@@ -1,5 +1,16 @@
 @import '@mdi/font/css/materialdesignicons.css';
 
+/* Vuetify overrides */
+// html {
+//   font-size: 14px !important;
+// }
+// .v-col {
+//   padding: 6px !important;
+// }
+.v-list .v-list-item__prepend > .v-icon {
+  margin-inline-end: 8px;
+}
+
 .v-theme--dark {
 
 /* Finally, set the CodeMirror gutter and line numbers to a darker color */

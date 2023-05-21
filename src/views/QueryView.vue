@@ -11,6 +11,8 @@ const props = defineProps({
   editorLang: { type: String, default: 'sql' },
 });
 
+const color = computed(() => props.connector?.opts?.color ?? 'rgba(var(--v-theme-primary))');
+
 /**
  * @type {Connector}
  */
@@ -70,9 +72,14 @@ async function runQuery() {
 }
 
 async function disconnect() {
-  await connector.disconnect();
+  try {
+    await connector.disconnect();
+    makeHappySnack('Successfully disconnected.');
+  } catch (e) {
+    makeSpicySnack(e);
+    console.error(e);
+  }
   emit('disconnect');
-  makeHappySnack('Successfully disconnected.');
 }
 
 /**
@@ -124,7 +131,7 @@ loadTables();
 </script>
 
 <template>
-  <v-app-bar density="compact" color="secondary">
+  <v-app-bar density="compact" v-bind="{ color }">
     <div class="schema-selector-container ml-1">
       <v-select density="compact" v-model="selectedSchema" :items="schemaList" item-title="Schema" hide-details
         variant="outlined" label="Select Schema" no-data-text="No schemas found" single-line />
@@ -140,17 +147,17 @@ loadTables();
       </v-list>
     </section>
 
-    <div id="sidebar-resize-handle" @mousedown="startResize"></div>
+    <div id="sidebar-resize-handle" @mousedown="startResize" :style="{ background: color }"></div>
 
     <section id="view--content">
       <div id="view--editor" style="height:320px;" ref="elEditor">
         <SqlEditor v-model="queryText" @run-selected="runQuery" />
       </div>
 
-      <hr id="editor-resize-handle" @mousedown="startResize" />
+      <hr id="editor-resize-handle" @mousedown="startResize" :style="{ background: color }" />
 
       <div id="view--actions" class="d-flex flex-row align-center">
-        <v-btn size="x-small" variant="elevated" rounded color="primary" class="ml-auto mr-1" @click="runQuery"
+        <v-btn v-bind="{ color }" size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="runQuery"
           :disabled="isQuerying">Run Query</v-btn>
       </div>
 
@@ -284,8 +291,8 @@ main {
   box-sizing: border-box;
   height: $handleThickness;
   min-height: $handleThickness;
-  background: rgba(var(--v-theme-primary));
   border: none;
+  background-color: rgba(var(--v-theme-primary));
   cursor: row-resize;
 }
 
@@ -294,8 +301,8 @@ main {
   width: $handleThickness;
   min-width: $handleThickness;
   box-sizing: border-box;
-  background: rgba(var(--v-theme-primary));
   border: none;
+  background-color: rgba(var(--v-theme-primary));
   cursor: col-resize;
   // cursor: ew-resize;
 }

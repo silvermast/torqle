@@ -1,12 +1,14 @@
 import { invoke } from '@tauri-apps/api/tauri';
 
 class Connector {
-    driverName = null;
-    driverOpts = null;
+    opts = null;
 
-    constructor({ driverName, driverOpts }) {
-        this.driverName = driverName;
-        this.driverOpts = driverOpts;
+    constructor(opts) {
+        this.opts = opts;
+    }
+
+    get driverOpts() {
+        return this.opts?.driverOpts;
     }
 
     async getSchema() { throw Error('getSchema not implemented') }
