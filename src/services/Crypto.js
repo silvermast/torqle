@@ -2,6 +2,11 @@ import crypto from 'crypto';
 import { invoke } from '@tauri-apps/api/tauri';
 
 let key;
+/**
+ * Generates an AES key and stores it in keytar. Use this to encrypt/decrypt the entire favorites file.
+ * Use AES CBC-256 with hmac
+ * @returns Buffer
+ */
 async function fetchKey() {
     if (!key) {
         const result = await invoke('fetch_key');
