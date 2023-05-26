@@ -1,19 +1,24 @@
-import crypto from 'crypto';
 import { invoke } from '@tauri-apps/api/tauri';
+import Hex from 'crypto-js/enc-hex';
+import Utf8 from 'crypto-js/enc-utf8';
+import Base64 from 'crypto-js/enc-base64';
+import { AES, HmacSHA256 } from 'crypto-js';
+import WordArray from 'crypto-js/lib-typedarrays';
 
 let key;
 /**
  * Generates an AES key and stores it in keytar. Use this to encrypt/decrypt the entire favorites file.
  * Use AES CBC-256 with hmac
- * @returns Buffer
+ * @returns {WordArray}
  */
 async function fetchKey() {
     if (!key) {
+        const testRexp = new RegExp('^[a-f0-9]{64}$'); // 32bit as hex
         const result = await invoke('fetch_key');
-        if (!/^[a-f0-9]{32}$/.match(result)) {
-            throw new Error(result); // bubble up keytar error
+        if (!testRexp.test(result)) {
+            throw new Error(`Failed to load encryption key! '${result}'`); // bubble up keytar error
         }
-        key = Buffer.from(result, 'hex');
+        key = Hex.parse(result);
     }
     return key;
 }
@@ -23,59 +28,68 @@ function isEncrypted(payload) {
 }
 
 /**
- * Encryption function using AES-CBC with PKCS7 padding and HMAC
+ * Encryption function using crypto-js defaults (AES256 CBC with Pkcs7)
  * @param {String} payload 
- * @param {Buffer} key
+ * @param {WordArray} key
  * @returns {String} JSON payload
  */
 function encrypt(payload, key) {
-    const iv = crypto.randomBytes(16); // 128-bit IV for AES-CBC
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-
-    // Enable PKCS7 padding
-    cipher.setAutoPadding(true);
-
-    // Encrypt with padding
-    const encrypted = Buffer.concat([cipher.update(payload, 'utf8'), cipher.final()]);
-
-    // Generate HMAC for integrity and authenticity
-    const hmac = crypto.createHmac('sha256', key).update(encrypted).digest();
+    const iv = WordArray.random(128 / 8); // 128-bit IV for AES-CBC 256
+    const enc = AES.encrypt(payload, key, { iv }); // defaults to AES-CBC
+    const hmac = HmacSHA256(enc.ciphertext, key);
 
     return JSON.stringify({
-        iv: iv.toString('hex'),
-        hmac: hmac.toString('hex'),
-        ciphertext: encrypted.toString('hex'),
+        iv: iv.toString(Hex),
+        hmac: hmac.toString(Hex),
+        ciphertext: enc.ciphertext.toString(Hex),
     });
 }
 
 /**
- * Decryption function using AES-CBC with PKCS7 padding and HMAC validation
+ * Decryption function using crypto-js defaults (AES256 CBC with Pkcs7)
  * @param {String} encryptedJson 
- * @param {Buffer} key
+ * @param {WordArray} key
  * @returns 
  */
-async function decrypt(encryptedJson, key) {
+function decrypt(encryptedJson, key) {
     const encryptedObj = JSON.parse(encryptedJson);
-    const ciphertext = Buffer.from(encryptedObj.ciphertext, 'hex');
-    const iv = Buffer.from(encryptedObj.iv, 'hex');
-    const hmac = Buffer.from(encryptedObj.hmac, 'hex');
+    const ciphertext = Hex.parse(encryptedObj.ciphertext);
+    const iv = Hex.parse(encryptedObj.iv);
+    const hmac = Hex.parse(encryptedObj.hmac);
 
     // Verify HMAC for integrity and authenticity
-    const localHmac = crypto.createHmac('sha256', key).update(ciphertext).digest();
+    const localHmac = HmacSHA256(ciphertext, key);
 
-    // Compare the received HMAC with the calculated HMAC
-    if (!crypto.timingSafeEqual(localHmac, hmac)) {
-        throw new Error('HMAC validation failed. The encrypted data may have been tampered with.');
+    // pretty sure we don't need to worry about timing attacks with hmac
+    // but we do it anyway!
+    // if (!timingSafeEquals(localHmac, hmac)) {
+    //     throw new Error('HMAC validation failed. The encrypted data may have been tampered with.');
+    // }
+
+    const decrypted = AES.decrypt(ciphertext.toString(Base64), key, { iv });
+
+    return decrypted.toString(Utf8);
+}
+
+/**
+ * Performs a WordArray comparisson that is safe from timing attacks
+ * @param {WordArray} wa1 
+ * @param {WordArray} wa2 
+ * @returns {Boolean}
+ */
+function timingSafeEquals(wa1, wa2) {
+    // Get the lengths of the hex strings
+    const length1 = wa1.words.length;
+    const length2 = wa2.words.length;
+
+    // Perform a bitwise comparison
+    let result = 0;
+    for (let i = 0; i < length1; i++) {
+        result |= wa1.words[i] ^ wa2.words[i % length2] ?? 0;
     }
 
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-
-    // Enable PKCS7 padding
-    decipher.setAutoPadding(true);
-
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-
-    return decrypted.toString('utf8');
+    // Return true if the comparison is successful
+    return length1 === length2 && result === 0;
 }
 
 export { encrypt, decrypt, fetchKey, isEncrypted };

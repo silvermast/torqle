@@ -1,8 +1,6 @@
 <script setup>
 import { v4 as uuidv4 } from 'uuid';
 import { computed, ref, watch } from 'vue';
-import { mdiDotsVertical } from "@mdi/js";
-import { Connector } from '~/services/Connector.js';
 import { fetchFavorites, storeFavorites } from '~/services/Favorites.js';
 import { hideSnack, makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
 import Password from '~/components/Password.vue';
@@ -41,19 +39,26 @@ const driver = computed(() => drivers.find(d => d.label === connection.value.dri
 const emit = defineEmits(['connect']);
 
 async function loadFavorites() {
-  favorites.value = await fetchFavorites();
+  try {
+    favorites.value = await fetchFavorites();
+  } catch (e) {
+    makeSpicySnack(e);
+    console.error(e);
+  }
 }
 
-function deleteFavorite(favorite) {
+async function deleteFavorite(favorite) {
   if (connection.value.id === favorite.id) {
     setConnection({});
   }
   favorites.value.splice(favorites.value.indexOf(favorite), 1);
+  await storeFavorites(favorites.value);
 }
-function dupeFavorite(favorite) {
+async function dupeFavorite(favorite) {
   const favoriteIndex = favorites.value.indexOf(favorite);
   const newFavorite = { ...favorite, id: uuidv4(), label: `${favorite.label} - Copy` };
   favorites.value.splice(favoriteIndex + 1, 0, newFavorite);
+  await storeFavorites(favorites.value);
 }
 
 async function saveFavorite() {
@@ -96,7 +101,9 @@ async function connect() {
 }
 
 function setConnection(payload) {
-  connection.value = { ...JSON.parse(JSON.stringify(payload)) };
+  const currentConnection = { ...JSON.parse(JSON.stringify(payload)) };
+  currentConnection.driverOpts = currentConnection.driverOpts ?? {};
+  connection.value = currentConnection;
 }
 
 loadFavorites();

@@ -54,14 +54,16 @@ fn fetch_key() -> Result<String, String> {
     };
 
     match keytar::get_password(service, &account) {
-        Ok(pass) => Ok(pass.password),
-        Err(_why) => {
-            let new_key = generate_aes_256_key();
-            match keytar::set_password(service, &account, &new_key) {
-                Ok(_result) => Ok(new_key),
-                Err(why) => Err(why.to_string()),
-            }
-        }
+        Ok(pass) => if pass.success { Ok(pass.password) } else { create_new_app_key(account, service.to_string()) }
+        Err(why) => Err(why.to_string()),
+    }
+}
+
+fn create_new_app_key(account: String, service: String) -> Result<String, String> {
+    let new_key = generate_aes_256_key();
+    match keytar::set_password(&service, &account, &new_key) {
+        Ok(_result) => Ok(new_key),
+        Err(why) => Err(why.to_string()),
     }
 }
 

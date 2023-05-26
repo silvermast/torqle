@@ -10,6 +10,10 @@ class TestConnector extends Connector {
         return true;
     }
 
+    async disconnect() {
+        return true;
+    }
+
     async changeSchema() {
         return true;
     }

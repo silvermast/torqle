@@ -2,6 +2,7 @@
 import { computed, ref, defineEmits } from "vue";
 const show = ref(false);
 const emit = defineEmits(['update:modelValue']);
+const props = defineProps(['modelValue']);
 </script>
 
 <template>
