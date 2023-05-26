@@ -51,8 +51,8 @@ class TestConnector extends Connector {
                 secondary_contact_avatar: faker.image.avatar(),
                 secondary_contact_birthdate: faker.date.birthdate(),
             }));
-            resolve({ rows, num_rows, elapsed_ms: Math.random() * 100 });
-        }, 10_000))
+            resolve({ rows, num_rows, elapsed_ms: Math.round(Math.random() * 100, 2) });
+        }, 5_000))
     }
 }
 export { TestConnector };

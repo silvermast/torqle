@@ -106,6 +106,20 @@ function setConnection(payload) {
   connection.value = currentConnection;
 }
 
+let lastClickTime = 0;
+/**
+ * on doubleclick, connect. on single click, set favorite.
+ */
+function setOrConnect(favorite) {
+  const elapsed = Date.now() - lastClickTime;
+  if (favorite.id && favorite.id === connection.value.id && elapsed < 300) {
+    connect();
+  } else {
+    lastClickTime = Date.now();
+    setConnection(favorite);
+  }
+}
+
 loadFavorites();
 
 document.title = 'New Connection';
@@ -113,14 +127,14 @@ document.title = 'New Connection';
 </script>
 
 <template>
-  <div class="connect-view d-flex">
+  <div class="connect-view d-flex" @keypress.enter="connect">
     <v-sheet width="250" class="flex-grow-0">
       <v-list lines="one" density="compact">
         <v-list-item :active="!connection.id" @click="setConnection({})" prepend-icon="mdi-plus">
           New Connection
         </v-list-item>
         <v-list-item v-for="favorite in favorites" :key="favorite.id" :title="favorite.label"
-          :active="favorite.id && favorite.id === connection.id" @click="setConnection(favorite)">
+          :active="favorite.id && favorite.id === connection.id" @click="setOrConnect(favorite)">
           <template v-slot:prepend>
             <v-icon :color="favorite.color ?? 'gray'" icon="mdi-circle" />
           </template>

@@ -92,7 +92,7 @@ const cmState = EditorState.create({
 
 function runSelected() {
   // const cursorPosition = cmState.doc;
-  emit('runSelected', fullText);
+  emit('runSelected');
 }
 
 // CodeMirror inits

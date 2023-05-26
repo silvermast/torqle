@@ -150,7 +150,7 @@ loadTables();
     <div id="sidebar-resize-handle" @mousedown="startResize" :style="{ background: color }"></div>
 
     <section id="view--content">
-      <div id="view--editor" style="height:320px;" ref="elEditor">
+      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor">
         <SqlEditor v-model="queryText" @run-selected="runQuery" />
       </div>
 
@@ -246,7 +246,6 @@ main {
     #view--results {
       position: relative;
       overflow: auto;
-      max-height: calc(50% - $actionHeight);
 
       table {
         border-spacing: 0;
@@ -260,17 +259,18 @@ main {
           background: rgb(var(--v-theme-background));
           text-align: left;
         }
+        th:not(:first-child) {
+          border-left: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+        }
 
         th,
         td {
+          font-size: 0.8em;
           padding: 2px 4px;
           border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
           overflow-x: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
-        }
-        td {
-          font-size: 0.8em;
         }
       }
     }
