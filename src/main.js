@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import './polyfill.mjs';
 import "./styles.scss";
+import { createPinia } from 'pinia'
 // import * as bootstrap from 'bootstrap';
 import App from "./App.vue";
 
@@ -23,4 +24,6 @@ const vuetify = createVuetify({
   }
 })
 
-createApp(App).use(vuetify).mount("#app");
+const pinia = createPinia();
+
+createApp(App).use(pinia).use(vuetify).mount("#app");

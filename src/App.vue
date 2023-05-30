@@ -15,12 +15,12 @@ function disconnect($event) {
   connector.value = null;
 }
 
-const defaults = ref({
+const vuetifyDefaults = ref({
   global: {
     density: 'compact',
   },
   VRow: { dense: true },
-  VBtn: { size: 'small' },
+  VBtn: { density: 'default' },
 })
 
 </script>

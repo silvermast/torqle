@@ -11,7 +11,6 @@ const props = defineProps({
  * These variable names correlate directly with the rust mysql package options
  * @see https://docs.rs/mysql/23.0.1/mysql/struct.OptsBuilder.html#method.new
  */
-
 const host = computed({
   get: () => props.modelValue?.host ?? 'localhost',
   set: (host) => emit('update:modelValue', { ...props.modelValue, host }),
@@ -32,8 +31,6 @@ const port = computed({
   set: (port) => emit('update:modelValue', { ...props.modelValue, port }),
 });
 
-const showPassword = ref(false);
-
 // const host = ref(props.connection.host ?? '');
 // const user = ref(props.value.value?.user ?? '');
 // const password = ref(props.value.value?.password ?? '');
@@ -47,8 +44,14 @@ const showPassword = ref(false);
 </script>
 
 <template>
-  <v-text-field density="compact" v-model="host" variant="outlined" label="MySQL Host" />
-  <v-text-field density="compact" v-model="port" variant="outlined" label="MySQL Port" type="number" />
+  <v-row>
+    <v-col cols="8">
+      <v-text-field density="compact" v-model="host" variant="outlined" label="MySQL Host" />
+    </v-col>
+    <v-col cols="4">
+      <v-text-field density="compact" v-model="port" variant="outlined" label="Port" type="number" />
+    </v-col>
+  </v-row>
   <v-text-field density="compact" v-model="user" variant="outlined" label="MySQL User" />
   <Password density="compact" v-model="password" variant="outlined" label="MySQL Password" />
 </template>

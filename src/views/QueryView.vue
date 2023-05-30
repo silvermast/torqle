@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import SqlEditor from '~/components/SqlEditor.vue';
+// import CodeMirror from 'vue-codemirror6';
 import { Connector } from '~/services/Connector.js';
 
 const emit = defineEmits(['disconnect']);
@@ -21,7 +22,8 @@ const connector = props.connector;
 const selectedSchema = ref(connector.getSchema());
 const tableList = ref();
 const schemaList = ref();
-const queryText = ref();
+const tableFilter = ref();
+const queryText = ref('SELECT * FROM FOO WHERE BLAH;');
 const results = ref();
 const resultsCount = ref();
 const resultsTime = ref();
@@ -82,6 +84,15 @@ async function disconnect() {
   emit('disconnect');
 }
 
+const filteredTableList = computed(() => {
+  const regex = new RegExp(tableFilter.value);
+  return (tableList.value ?? []).filter(v => regex.test(v));
+});
+
+function matchesTableFilter(value) {
+  return new RegExp(tableFilter.value, 'i').test(value);
+}
+
 /**
  * Resizing functionality
  */
@@ -121,7 +132,7 @@ function startResize($event) {
   document.addEventListener('mouseup', stopResize);
 }
 
-function viewKeypress($event) {
+function debug($event) {
   console.log($event);
 }
 
@@ -140,9 +151,10 @@ loadTables();
   </v-app-bar>
   <main>
     <section id="view--sidebar" style="width:256px; min-width:256px;" ref="elSidebar">
-      <v-text-field density="compact" label="Filter Tables" clearable hide-details single-line></v-text-field>
+      <v-text-field density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter"></v-text-field>
       <v-list id="table-list">
-        <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="console.log(i)"
+        <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="debug"
+          v-show="matchesTableFilter(table)"
           v-text="table"></v-list-item>
       </v-list>
     </section>
