@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import ConnectView from './views/ConnectView.vue';
 import QueryView from './views/QueryView.vue';
 import Snacks from './components/Snacks.vue';
@@ -9,11 +9,14 @@ let connector = ref();
 function connect($event) {
   console.log('received connect');
   connector.value = $event;
+  document.title = [connector.value.type, connector.value.dbHost].filter(i => i).join(' - ');
 }
 function disconnect($event) {
   console.log('received disconnect');
   connector.value = null;
 }
+
+document.title = 'New Connection';
 
 const vuetifyDefaults = ref({
   global: {
@@ -21,7 +24,13 @@ const vuetifyDefaults = ref({
   },
   VRow: { dense: true },
   VBtn: { density: 'default' },
-})
+  VTextField: { 
+    paste(val) {
+      console.log(val);
+      return val;
+    } 
+  }
+});
 
 </script>
 

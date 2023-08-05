@@ -1,16 +1,41 @@
 import { invoke } from '@tauri-apps/api/tauri';
 
 class Connector {
-    opts = null;
+    opts = {};
 
     constructor(opts) {
         this.opts = opts;
     }
 
-    get driverOpts() {
-        return this.opts?.driverOpts;
+    get dbHost() {
+        return this.opts?.driverOpts?.host;
     }
 
+    get type() {
+        return this.opts?.driverName;
+    }
+
+    get connectOpts() {
+        return {
+            ...this.opts,
+            driverOpts: {
+                driver: this.opts.driverName,
+                ...this.opts.driverOpts,
+                host: this.opts.driverOpts?.host ?? '',
+                port: Number(this.opts.driverOpts?.port ?? 0),
+                user: this.opts.driverOpts?.user ?? '',
+            },
+            sshOpts: {
+                host: this.opts.sshOpts?.host ?? '',
+                port: Number(this.opts.sshOpts?.port ?? 22),
+                user: this.opts.sshOpts?.user ?? '',
+                password: this.opts.sshOpts?.password ?? '',
+                keyfile: this.opts.sshOpts?.keyfile ?? undefined,
+            }
+        }
+    }
+
+    async setSchema() { throw Error('getSchema not implemented') }
     async getSchema() { throw Error('getSchema not implemented') }
     async loadSchemas() { throw Error('loadSchemas not implemented') }
     async loadTables() { throw Error('loadTables not implemented') }
@@ -19,7 +44,7 @@ class Connector {
      * Tells the rust-end to create a connection. Internally, this is bound to the window.
      */
     async connect() {
-        return await invoke('connect', { driverName: this.driverName, driverOpts: this.driverOpts });
+        return await invoke('connect', this.connectOpts);
     }
 
     /**
@@ -33,25 +58,20 @@ class Connector {
      * Tests the connection info
      */
     async test() {
-        return await invoke('test_connection', { driverName: this.driverName, driverOpts: this.driverOpts });
+        const opts = structuredClone(this.connectOpts);
+        console.log('test_connection', opts);
+        return await invoke('test_connection', opts);
     }
 
     /**
      * Runs a query
      * @TODO add "cancel" capability
      * @param {String} query
+     * @param {String} schema -- optional
      */
-    async query(query) {
-        return invoke('query', { query });
-    }
-
-    /**
-     * Tells the backend to change the schema
-     * @param {String} schema 
-     * @returns 
-     */
-    async changeSchema(schema) {
-        return await invoke('change_schema', { schema });
+    async query(query, database) {
+        console.log({ query, database });
+        return invoke('query', { query, database });
     }
 }
 

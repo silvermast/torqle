@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import SqlEditor from '~/components/SqlEditor.vue';
 // import CodeMirror from 'vue-codemirror6';
@@ -23,17 +23,18 @@ const selectedSchema = ref(connector.getSchema());
 const tableList = ref();
 const schemaList = ref();
 const tableFilter = ref();
-const queryText = ref('SELECT * FROM FOO WHERE BLAH;');
+const queryText = ref('-- Run a query!');
 const results = ref();
 const resultsCount = ref();
 const resultsTime = ref();
 const isQuerying = ref(false);
+const queryError = ref();
 
 const showResultsCount = computed(() => resultsCount.value !== undefined);
 const showResultsTime = computed(() => resultsTime.value !== undefined);
 
 watch(selectedSchema, async (newValue) => {
-  await connector.changeSchema(newValue);
+  await connector.setSchema(newValue);
   loadTables();
 });
 
@@ -60,14 +61,16 @@ async function loadTables() {
 
 async function runQuery() {
   isQuerying.value = true;
+  queryError.value = null;
 
   try {
-    const queryResult = await connector.query(queryText.value);
+    const queryResult = await connector.query(queryText.value, selectedSchema.value);
     results.value = queryResult.rows;
     resultsCount.value = queryResult.num_rows;
     resultsTime.value = queryResult.elapsed_ms;
   } catch (e) {
-    makeSpicySnack(e);
+    console.warn(e);
+    queryError.value = (e.error ?? e).toString();
   }
 
   isQuerying.value = false;
@@ -84,14 +87,13 @@ async function disconnect() {
   emit('disconnect');
 }
 
-const filteredTableList = computed(() => {
-  const regex = new RegExp(tableFilter.value);
-  return (tableList.value ?? []).filter(v => regex.test(v));
-});
-
 function matchesTableFilter(value) {
   return new RegExp(tableFilter.value, 'i').test(value);
 }
+
+onMounted(() => {
+  document.addEventListener('keypress', debug);
+});
 
 /**
  * Resizing functionality
@@ -145,13 +147,15 @@ loadTables();
   <v-app-bar density="compact" v-bind="{ color }">
     <div class="schema-selector-container ml-1">
       <v-select density="compact" v-model="selectedSchema" :items="schemaList" item-title="Schema" hide-details
-        variant="outlined" label="Select Schema" no-data-text="No schemas found" single-line />
+        variant="outlined" rounded label="Select Schema" no-data-text="No schemas found" single-line />
     </div>
+    <v-btn class="ml-1" size="x-small" @click="loadSchemas">Refresh Schemas</v-btn>
     <v-btn size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="disconnect">Disconnect</v-btn>
   </v-app-bar>
-  <main>
+  <main @keypress="debug">
     <section id="view--sidebar" style="width:256px; min-width:256px;" ref="elSidebar">
       <v-text-field density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter"></v-text-field>
+      <v-btn size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="loadTables">Refresh Tables</v-btn>
       <v-list id="table-list">
         <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="debug"
           v-show="matchesTableFilter(table)"
@@ -162,7 +166,7 @@ loadTables();
     <div id="sidebar-resize-handle" @mousedown="startResize" :style="{ background: color }"></div>
 
     <section id="view--content">
-      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor">
+      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor" @keypress="debug">
         <SqlEditor v-model="queryText" @run-selected="runQuery" />
       </div>
 
@@ -177,9 +181,12 @@ loadTables();
         <v-overlay v-model="isQuerying" contained>
           <v-icon icon="loading" size="x-large" />
         </v-overlay>
-        <table v-if="results">
+
+        <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
+
+        <table v-if="results && !isQuerying">
           <thead>
-            <tr><th v-for="value, field in results[0]" v-text="field" /></tr>
+            <tr><th v-for="value, field in results[0]" v-text="field" width="150" /></tr>
           </thead>
           <tbody>
             <tr v-for="row in results"><td v-for="value in row" v-text="value" /></tr>

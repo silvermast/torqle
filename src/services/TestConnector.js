@@ -3,7 +3,10 @@ import { faker } from '@faker-js/faker';
 
 class TestConnector extends Connector {
     getSchema() {
-        return this.driverOpts.database ?? null;
+        return null;
+    }
+    setSchema() {
+        return null;
     }
 
     async connect() {
@@ -14,7 +17,7 @@ class TestConnector extends Connector {
         return true;
     }
 
-    async changeSchema() {
+    async setSchema() {
         return true;
     }
 
@@ -33,7 +36,10 @@ class TestConnector extends Connector {
         return Array(100).fill(null).map(() => faker.internet.displayName());
     }
 
-    async query(query) {
+    async query(query, database) {
+        if (query === 'error') {
+            throw new Error(`Mock error message: ${faker.lorem.sentence()}`)
+        }
         console.log({ query });
         return new Promise(resolve => setTimeout(() => {
             let i = 1;

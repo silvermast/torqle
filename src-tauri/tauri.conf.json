@@ -17,8 +17,14 @@
         "all": false,
         "open": true
       },
+      "dialog": {
+        "open": true
+      },
       "fs": {
         "scope": ["$APPLOCALDATA/**"],
+        "all": true
+      },
+      "os": {
         "all": true
       },
       "window": {

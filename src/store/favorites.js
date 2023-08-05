@@ -15,7 +15,13 @@ export default defineStore('favorites', () => {
             title: '',
             color: 'primary', // update!
             useSsh: false,
-            sshOpts: {},
+            sshOpts: {
+                user: '',
+                host: '',
+                port: 22,
+                password: '',
+                keyfile: '',
+            },
             driverName: null,
             driverOpts: {},
         }

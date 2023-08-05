@@ -1,48 +1,65 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{collections::HashMap, sync::Mutex};
 use rand::{thread_rng, Rng};
+use ssh_jumper::{
+    model::{HostAddress, HostSocketParams, JumpHostAuthParams, SshTunnelParams},
+    SshJumper,
+};
+use std::{borrow::Cow, collections::HashMap, path::Path, sync::Mutex};
 use users::get_current_username;
 
-use connectors::{ClientConnection, QueryError, QueryResult};
-use tauri::{CustomMenuItem, Menu, Submenu, Window, State};
+// use mysql::*;
+// use mysql::prelude::*;
+use sqlx::AnyPool;
+
+use adapters::{Adapter, AdapterOpts, QueryError, QueryResult, SshOpts};
+use tauri::{CustomMenuItem, Menu, MenuItem, State, Submenu, Window};
 use uuid::Uuid;
 
-mod connectors;
+mod adapters;
+mod ssh;
 
 #[tauri::command]
-fn connect(window: Window, driver_opts: HashMap<String, String>, state_conn: State<Connections>) -> Result<bool, String> {
-    let conn = connectors::mysql::Mysql::connect(driver_opts).or_else(|why| Err(why.to_string()))?;
-    let mut connections = state_conn.0.try_lock().or_else(|why| Err(why.to_string()))?;
-    connections.insert(window.label().to_string(), conn);
-    Ok(true)
-}
-
-#[tauri::command]
-fn query(window: Window, query: String, state_conn: State<Connections>) -> Result<QueryResult, QueryError> {
-    let connections = state_conn.0.try_lock().or_else(|why| Err(QueryError { error: why.to_string() }))?;
-    let uuid: String = window.label().into();
-    let conn = connections.get(&uuid).ok_or(QueryError { error: "No connection found bound to the window!".to_string() })?;
-    conn.query(query)
-}
-
-#[tauri::command]
-fn test_connection(driver_opts: HashMap<String, String>) -> Result<String, String> {
-    match connectors::mysql::Mysql::test(driver_opts) {
-        Ok(_) => Ok("The connection test was a success!".to_string()),
-        Err(why) => Err(why.to_string()),
+async fn connect(
+    window: Window,
+    driver_opts: AdapterOpts,
+    ssh_opts: Option<SshOpts>,
+    state: State<'_, Connections>,
+) -> Result<bool, QueryError> {
+    let conn = Adapter::connect(driver_opts, ssh_opts).await?;
+    {
+        let mut connections = state.0.try_lock().map_err(QueryError::from)?;
+        connections.insert(window.label().to_string(), conn);
     }
+    Ok(true)
 }
 
 #[tauri::command]
-fn change_schema(window: Window, state_conn: State<Connections>, schema: String) -> Result<bool, String> {
-    let mut connections = state_conn.0.try_lock().or_else(|why| Err(why.to_string()))?;
+async fn query<'conn>(
+    window: Window,
+    query: String,
+    database: Option<String>,
+    state: State<'_, Connections>,
+) -> Result<QueryResult, QueryError> {
     let uuid: String = window.label().into();
-    let conn = connections.get(&uuid).ok_or("No connection found bound to the window!".to_string())?;
-    let mut conn_cloned = conn.clone();
-    conn_cloned.change_schema(schema).or_else(|why| Err(why.to_string()))?;
-    connections.insert(window.label().to_string(), conn_cloned);
-    Ok(true)
+    let conn: Adapter = {
+        let connections = state.0.try_lock().map_err(QueryError::from)?;
+        connections.get(&uuid).ok_or(QueryError::from("No connection found bound to the window!"))?.clone()
+    };
+
+    // let conn: &'_ Adapter = get_window_connection(state, window)?;
+    conn.query(query, database).await
+}
+
+#[tauri::command]
+async fn test_connection(
+    driver_opts: AdapterOpts,
+    ssh_opts: Option<SshOpts>,
+) -> Result<String, QueryError> {
+    let mut adapter = Adapter::connect(driver_opts, ssh_opts).await?;
+    adapter.disconnect().await;
+
+    Ok("The connection test was a success!".to_string())
 }
 
 #[tauri::command]
@@ -54,7 +71,13 @@ fn fetch_key() -> Result<String, String> {
     };
 
     match keytar::get_password(service, &account) {
-        Ok(pass) => if pass.success { Ok(pass.password) } else { create_new_app_key(account, service.to_string()) }
+        Ok(pass) => {
+            if pass.success {
+                Ok(pass.password)
+            } else {
+                create_new_app_key(account, service.to_string())
+            }
+        }
         Err(why) => Err(why.to_string()),
     }
 }
@@ -73,20 +96,38 @@ fn generate_aes_256_key() -> String {
     hex::encode(key)
 }
 
+/** @todo build out menus more appropriately, and track windows */
 fn build_menu() -> Menu {
-
     // here `"quit".to_string()` defines the menu item id, and the second parameter is the menu item label.
-    let new_window = CustomMenuItem::new("new_window".to_string(), "New Window").accelerator("cmdOrCtrl+N");
-    let close_window = CustomMenuItem::new("close_window".to_string(), "Close Window").accelerator("cmdOrCtrl+W");
+    let new_window =
+        CustomMenuItem::new("new_window".to_string(), "New Window").accelerator("cmdOrCtrl+N");
+    let close_window =
+        CustomMenuItem::new("close_window".to_string(), "Close Window").accelerator("cmdOrCtrl+W");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit").accelerator("cmdOrCtrl+Q");
 
-    let file_submenu = Submenu::new("File", Menu::new()
-    .add_item(new_window)
-    .add_item(close_window)
-    .add_item(quit));
+    let menu = Menu::new();
 
-    return Menu::new()
-        .add_submenu(file_submenu);
+    let file_menu = Submenu::new(
+        "File",
+        Menu::new()
+            .add_item(new_window)
+            .add_item(close_window)
+            .add_item(quit),
+    );
+
+    let edit_menu = Submenu::new(
+        "Edit",
+        Menu::new()
+            .add_native_item(MenuItem::Undo)
+            .add_native_item(MenuItem::Redo)
+            .add_native_item(MenuItem::Separator)
+            .add_native_item(MenuItem::Cut)
+            .add_native_item(MenuItem::Copy)
+            .add_native_item(MenuItem::Paste)
+            .add_native_item(MenuItem::SelectAll),
+    );
+
+    menu.add_submenu(file_menu).add_submenu(edit_menu)
 
     // let menu = Menu::new();
     // menu.add_submenu(Submenu::new("File", file_menu));
@@ -99,10 +140,9 @@ fn build_menu() -> Menu {
     //         std::mem::replace(sub_menu, file_menu);
     //     }
     // }
-
 }
 
-struct Connections(Mutex<HashMap<String, connectors::mysql::Mysql>>);
+struct Connections(Mutex<HashMap<String, Adapter>>);
 
 fn main() {
     tauri::Builder::default()
@@ -116,26 +156,33 @@ fn main() {
             Ok(())
         })
         .menu(build_menu())
-        .on_menu_event(|event| {
-            match event.menu_item_id() {
-                "new_window" => {
-                    let window: Window = tauri::WindowBuilder::new(
-                        event.window(),
-                        Uuid::new_v4().to_string(),
-                        tauri::WindowUrl::App("index.html".into()),
-                    ).build().unwrap();
-                    window.set_title("New Connection".into()).expect("Failed to set window title");
-                }
-                "close_window" => {
-                    event.window().close().unwrap();
-                }
-                "quit" => {
-                    std::process::exit(0);
-                }
-                _ => {}
+        .on_menu_event(|event| match event.menu_item_id() {
+            "new_window" => {
+                let window: Window = tauri::WindowBuilder::new(
+                    event.window(),
+                    Uuid::new_v4().to_string(),
+                    tauri::WindowUrl::App("index.html".into()),
+                )
+                .build()
+                .unwrap();
+                window
+                    .set_title("New Connection".into())
+                    .expect("Failed to set window title");
             }
-          })
-        .invoke_handler(tauri::generate_handler![connect, test_connection, query, change_schema, fetch_key])
+            "close_window" => {
+                event.window().close().unwrap();
+            }
+            "quit" => {
+                std::process::exit(0);
+            }
+            _ => {}
+        })
+        .invoke_handler(tauri::generate_handler![
+            connect,
+            test_connection,
+            query,
+            fetch_key
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -19,7 +19,6 @@ async function fetchFavorites() {
         if (isEncrypted(payload)) {
             const appKey = await fetchKey();
             const decrypted = decrypt(payload, appKey);
-            console.log('decrypted', decrypted);
             return JSON.parse(decrypt(payload, appKey));
         }
 
