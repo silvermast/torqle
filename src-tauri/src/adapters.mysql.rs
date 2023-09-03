@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use std::panic::catch_unwind;
 
-use chrono::{Utc, TimeZone};
-use mysql_async::prelude::Queryable;
-use mysql_async::{Row, OptsBuilder, Pool, Value};
-// use mysql_async::Value;
+use chrono::{Utc, TimeZone, Duration};
+use chrono::{DateTime, NaiveDateTime, FixedOffset};
+use mysql::Value;
 use serde::{Serialize, ser::SerializeMap, Serializer};
 use serde_json::{json, Number};
-// use mysql_async::prelude::*;
-// use mysql::Row;
+use mysql::prelude::Queryable;
+use mysql::Row;
 use ssh_jumper::model::SshForwarderEnd;
 use tokio::sync::oneshot::Receiver;
 
@@ -80,7 +79,7 @@ impl QueryError {
 }
 #[derive(Clone)]
 pub struct Adapter {
-    pool: Pool,
+    pool: mysql::Pool,
 }
 impl Adapter {
     pub async fn connect(opts: AdapterOpts, ssh_opts: Option<SshOpts>) -> Result<Self, QueryError> where Self: Sized {
@@ -92,14 +91,14 @@ impl Adapter {
             None => (opts, None)
         };
 
-        let mysql_opts = OptsBuilder::default()
-            .ip_or_hostname(driver_opts.host)
+        let mysql_opts = mysql::OptsBuilder::new()
+            .ip_or_hostname(Some(driver_opts.host))
             .tcp_port(driver_opts.port)
             .user(Some(driver_opts.user))
             .pass(Some(driver_opts.password))
             .prefer_socket(false);
         
-        let pool = Pool::new(mysql_opts);
+        let pool = mysql::Pool::new(mysql_opts).map_err(QueryError::from)?;
 
         Ok(Adapter { pool: pool })
     }
@@ -109,16 +108,16 @@ impl Adapter {
     }
 
     pub async fn query(&self, query: String, database: Option<String>) -> Result<QueryResult, QueryError> {
-        let mut conn = self.pool.get_conn().await.map_err(QueryError::from)?;
+        let mut conn = self.pool.get_conn().map_err(QueryError::from)?;
 
         if let Some(db_name) = database {
-            conn.exec_drop("USE ?", vec![db_name]).await.map_err(QueryError::from)?;
+            conn.query_drop(format!("USE {}", db_name).as_str()).map_err(QueryError::from)?;
         }
 
         println!("QUERY: {}", query);
         let start_time = std::time::SystemTime::now();
 
-        let query_results: Vec<Row> = conn.query(query.as_str()).await.map_err(QueryError::from)?;
+        let query_results: Vec<Row> = conn.query(query.as_str()).map_err(QueryError::from)?;
         println!("Retrieved {} results", query_results.len());
         let mut results: Vec<HashMap<String, JsonValue>> = Vec::new();
 
@@ -148,6 +147,7 @@ fn parse_sqlx_row(row: Row) -> Result<HashMap<String, JsonValue>, QueryError> {
 
     for index in 0..columns.len() {
         let field: String = columns[index].name_str().into();
+        println!("Column {} - {}", index, field);
 
         let value: JsonValue = match row.get(index).unwrap() {
             Value::NULL => JsonValue::Null,

@@ -9,7 +9,7 @@ let connector = ref();
 function connect($event) {
   console.log('received connect');
   connector.value = $event;
-  document.title = [connector.value.type, connector.value.dbHost].filter(i => i).join(' - ');
+  document.title = connector.value.title ?? 'Connection';
 }
 function disconnect($event) {
   console.log('received disconnect');
@@ -45,11 +45,5 @@ const vuetifyDefaults = ref({
 </template>
 
 <style scoped>
-/* .logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-} */
 </style>

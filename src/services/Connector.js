@@ -35,9 +35,9 @@ class Connector {
         }
     }
 
-    async setSchema() { throw Error('getSchema not implemented') }
-    async getSchema() { throw Error('getSchema not implemented') }
-    async loadSchemas() { throw Error('loadSchemas not implemented') }
+    setDatabase() { throw Error('setDatabase not implemented') }
+    getDatabase() { throw Error('getDatabase not implemented') }
+    async loadDatabases() { throw Error('loadDatabases not implemented') }
     async loadTables() { throw Error('loadTables not implemented') }
 
     /**

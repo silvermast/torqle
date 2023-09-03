@@ -2,11 +2,13 @@ import { Connector } from './Connector';
 import { faker } from '@faker-js/faker';
 
 class TestConnector extends Connector {
-    getSchema() {
-        return null;
+    database = null;
+
+    getDatabase() {
+        return this.database;
     }
-    setSchema() {
-        return null;
+    setDatabase(database) {
+        return this.database = database;
     }
 
     async connect() {
@@ -17,10 +19,6 @@ class TestConnector extends Connector {
         return true;
     }
 
-    async setSchema() {
-        return true;
-    }
-
     async test() {
         if (0.5 - Math.random()) {
             throw Error('Test Failed');
@@ -28,7 +26,7 @@ class TestConnector extends Connector {
         return 'Test Passed';
     }
 
-    async loadSchemas() {
+    async loadDatabases() {
         return Array(20).fill(null).map(() => faker.internet.displayName());
     }
 

@@ -1,6 +1,7 @@
 use std::{collections::HashMap};
 use mysql::{prelude::Queryable};
 use mysql::Row;
+use serde_json;
 
 use super::{Adapter, AdapterOpts, QueryResult, QueryError};
 
@@ -35,16 +36,19 @@ impl Adapter for Mysql {
 
         let start_time = std::time::SystemTime::now();
         println!("QUERY: {}", query);
-        let results = conn.query_map(query, |mut row: Row| {
-            let mut row_map = HashMap::new();
-            let columns = row.columns();
-            for index in 0..columns.len() {
-                let field: String = columns[index].name_str().into();
-                let value: String = row.take(index).unwrap_or("".to_string());
-                row_map.insert(field, value);
-            }
-            row_map
-        }).map_err(|why| QueryError { error: why.to_string() })?;
+        // let results = conn.query_map(query, |mut row: Row| {
+        //     let mut row_map = HashMap::new();
+        //     let columns = row.columns();
+        //     for index in 0..columns.len() {
+        //         let field: String = columns[index].name_str().into();
+        //         let value: String = row.take(index).unwrap_or("".to_string());
+        //         row_map.insert(field, value);
+        //     }
+        //     row_map
+        // }).map_err(|why| QueryError { error: why.to_string() })?;
+
+        let results = sqlx::query!(query).await.map_err(|why| QueryError::new("Failed to execute query"))?;
+        println!("Returning query results");
 
         Ok(QueryResult {
             elapsed_ms: start_time.elapsed().expect("Error parsing elapsed timestamp!").as_millis().to_string(),

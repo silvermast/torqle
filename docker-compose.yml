@@ -7,7 +7,19 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: mypassword
       SQL_MODE: ""
+      MYSQL_DATABASE: testdb
     
+  postgres:
+    image: bitnami/postgresql
+    ports: 
+      - 5432:5432
+    environment:
+      POSTGRESQL_USERNAME: pguser
+      POSTGRESQL_PASSWORD: mypassword
+      POSTGRESQL_DATABASE: testdb
+    volumes: 
+      - ./.docker/postgres:/bitnami/postgresql
+
   mongo:
     image: mongo
     ports:

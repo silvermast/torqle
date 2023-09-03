@@ -23,10 +23,15 @@ mod ssh;
 async fn connect(
     window: Window,
     driver_opts: AdapterOpts,
+    use_ssh: bool,
     ssh_opts: Option<SshOpts>,
     state: State<'_, Connections>,
 ) -> Result<bool, QueryError> {
-    let conn = Adapter::connect(driver_opts, ssh_opts).await?;
+    let conn = if use_ssh {
+        Adapter::connect(driver_opts, ssh_opts).await?
+    } else {
+        Adapter::connect(driver_opts, None).await?
+    };
     {
         let mut connections = state.0.try_lock().map_err(QueryError::from)?;
         connections.insert(window.label().to_string(), conn);
@@ -54,10 +59,15 @@ async fn query<'conn>(
 #[tauri::command]
 async fn test_connection(
     driver_opts: AdapterOpts,
+    use_ssh: bool,
     ssh_opts: Option<SshOpts>,
 ) -> Result<String, QueryError> {
-    let mut adapter = Adapter::connect(driver_opts, ssh_opts).await?;
-    adapter.disconnect().await;
+    let mut conn = if use_ssh {
+        Adapter::connect(driver_opts, ssh_opts).await?
+    } else {
+        Adapter::connect(driver_opts, None).await?
+    };
+    conn.disconnect().await;
 
     Ok("The connection test was a success!".to_string())
 }

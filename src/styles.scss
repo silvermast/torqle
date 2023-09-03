@@ -1,5 +1,9 @@
 @import '@mdi/font/css/materialdesignicons.css';
 
+body {
+  overflow: hidden;
+}
+
 /* Vuetify overrides */
 // html {
 //   font-size: 14px !important;
@@ -7,6 +11,14 @@
 // .v-col {
 //   padding: 6px !important;
 // }
+
+.icon-flip-h {
+  transform: scaleX(-1);
+}
+.icon-flip-v {
+  transform: scaleY(-1);
+}
+
 .v-list .v-list-item__prepend > .v-icon {
   margin-inline-end: 8px;
 }

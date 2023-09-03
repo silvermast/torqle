@@ -5,7 +5,7 @@ import Password from '~/components/Password.vue';
 import FavoritesList from '~/components/FavoritesList.vue';
 import { open } from '@tauri-apps/api/dialog';
 
-import useFavoritesStore from '~/store/favorites.js';
+import useFavoritesStore from '~/store/main.js';
 
 import { TestConnector } from '~/services/TestConnector.js';
 import { MysqlConnector } from '~/services/MysqlConnector.js';
@@ -57,6 +57,7 @@ async function connect() {
   lastError.value = null;
   isConnecting.value = true;
   try {
+    console.log('Connecting', connection.value);
     const connector = new driver.value.connector({ ...connection.value });
     await connector.connect();
     emit('connect', connector);
@@ -75,6 +76,10 @@ async function openSshKeyDialog() {
 }
 
 document.title = 'New Connection';
+
+if (/localhost:1420/.test(window.location)) {
+  connection.value.driverName = 'Test';
+}
 
 </script>
 

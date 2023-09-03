@@ -1,10 +1,10 @@
 import { Connector } from './Connector.js';
 
 class MysqlConnector extends Connector {
-    getSchema() {
+    getDatabase() {
         return this.opts?.driverOpts?.database ?? null;
     }
-    setSchema(schema) {
+    setDatabase(schema) {
         this.opts.driverOpts.database = schema;
     }
 
@@ -12,14 +12,14 @@ class MysqlConnector extends Connector {
         return true;
     }
 
-    async loadSchemas() {
+    async loadDatabases() {
         const result = await this.query('SHOW DATABASES;');
         console.log('loadSchemas', result);
         return result?.rows?.map(row => Object.values(row)[0]);
     }
 
     async loadTables() {
-        const schema = this.getSchema();
+        const schema = this.getDatabase();
         if (schema) {
             const result = await this.query(`SHOW TABLES IN ${schema};`);
             console.log('loadTables', result);

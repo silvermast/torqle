@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
-import SqlEditor from '~/components/SqlEditor.vue';
-// import CodeMirror from 'vue-codemirror6';
+import QueryEditor from '~/components/QueryEditor.vue';
+import QueryWait from '~/components/QueryWait.vue';
+import IconButton from '~/components/IconButton.vue';
+import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/services/Connector.js';
 
 const emit = defineEmits(['disconnect']);
@@ -19,37 +21,35 @@ const color = computed(() => props.connector?.opts?.color ?? 'rgba(var(--v-theme
  */
 const connector = props.connector;
 
-const selectedSchema = ref(connector.getSchema());
+const selectedDatabase = ref(connector.getDatabase());
 const tableList = ref();
-const schemaList = ref();
+const databaseList = ref();
 const tableFilter = ref();
 const queryText = ref('-- Run a query!');
-const results = ref();
-const resultsCount = ref();
-const resultsTime = ref();
+const queryResult = ref();
 const isQuerying = ref(false);
 const queryError = ref();
 
-const showResultsCount = computed(() => resultsCount.value !== undefined);
-const showResultsTime = computed(() => resultsTime.value !== undefined);
+const showResultsCount = computed(() => queryResult.value?.num_rows !== undefined);
+const showResultsTime = computed(() => queryResult.value?.elapsed_ms !== undefined);
 
-watch(selectedSchema, async (newValue) => {
-  await connector.setSchema(newValue);
+watch(selectedDatabase, async (newValue) => {
+  await connector.setDatabase(newValue);
   loadTables();
 });
 
 watch(queryText, () => console.log('queryText:', queryText.value));
 
-async function loadSchemas() {
+async function loadDatabases() {
   try {
-    schemaList.value = await connector.loadSchemas();
+    databaseList.value = await connector.loadDatabases();
   } catch (e) {
     makeSpicySnack(e);
   }
 }
 
 async function loadTables() {
-  if (!selectedSchema.value) {
+  if (!selectedDatabase.value) {
     return;
   }
   try {
@@ -59,15 +59,20 @@ async function loadTables() {
   }
 }
 
+async function reloadTablesAndDatabases() {
+  await Promise.all([loadDatabases, loadTables]);
+}
+
 async function runQuery() {
   isQuerying.value = true;
   queryError.value = null;
 
   try {
-    const queryResult = await connector.query(queryText.value, selectedSchema.value);
-    results.value = queryResult.rows;
-    resultsCount.value = queryResult.num_rows;
-    resultsTime.value = queryResult.elapsed_ms;
+    queryResult.value = await connector.query(queryText.value, selectedDatabase.value);
+    console.log(queryResult.value);
+    // results.value = queryResult.rows;
+    // resultsCount.value = queryResult.num_rows;
+    // resultsTime.value = queryResult.elapsed_ms;
   } catch (e) {
     console.warn(e);
     queryError.value = (e.error ?? e).toString();
@@ -91,71 +96,50 @@ function matchesTableFilter(value) {
   return new RegExp(tableFilter.value, 'i').test(value);
 }
 
-onMounted(() => {
-  document.addEventListener('keypress', debug);
-});
-
-/**
- * Resizing functionality
- */
-
 const elSidebar = ref();
 const elEditor = ref();
-const actionHeight = 32;
-const appBarHeight = 48;
-
-function startResize($event) {
-  $event.preventDefault();
-  $event.stopPropagation();
-  const isSidebar = $event.target.id === 'sidebar-resize-handle';
-  const resizeTarget = isSidebar ? elSidebar : elEditor;
-  const resizeMetric = isSidebar ? 'pageX' : 'clientY';
-  const resizeStyle = isSidebar ? 'width' : 'height';
-  const maxValue = isSidebar ? (document.body.offsetWidth) : (document.body.offsetHeight - actionHeight);
-  const minValue = 0;
-  const offset = isSidebar ? 0 : appBarHeight;
-
-  function resize(e) {
-    if (e[resizeMetric] > minValue && e[resizeMetric] < maxValue) {
-      const newValue = e[resizeMetric] - offset;
-      resizeTarget.value.style[resizeStyle] = `${newValue}px`;
-      resizeTarget.value.style[`min-${resizeStyle}`] = `${newValue}px`;
-    }
-  }
-
-  function stopResize(e) {
-    document.removeEventListener('mousemove', resize); // stop resizing
-    $event.target.removeEventListener('mouseup', stopResize); // cleanup
-    document.removeEventListener('mouseup', stopResize); // cleanup
-  }
-
-  document.addEventListener('mousemove', resize);
-  $event.target.addEventListener('mouseup', stopResize)
-  document.addEventListener('mouseup', stopResize);
-}
+const elDatabaseSelector = ref();
+const elTableFilter = ref();
 
 function debug($event) {
   console.log($event);
 }
 
-loadSchemas();
+function keypress(e) {
+  const cmdKey = /Mac/.test(window.navigator.userAgent) ? 'metaKey' : 'ctrlKey'
+  if (e.code === 'KeyJ' && e[cmdKey]) {
+    elDatabaseSelector.value.focus();
+  } else if (e.code === 'keyK' && e[cmdKey]) {
+    elTableFilter.value.focus();
+  }
+}
+
+loadDatabases();
 loadTables();
 
 </script>
 
 <template>
-  <v-app-bar density="compact" v-bind="{ color }">
-    <div class="schema-selector-container ml-1">
-      <v-select density="compact" v-model="selectedSchema" :items="schemaList" item-title="Schema" hide-details
-        variant="outlined" rounded label="Select Schema" no-data-text="No schemas found" single-line />
-    </div>
-    <v-btn class="ml-1" size="x-small" @click="loadSchemas">Refresh Schemas</v-btn>
-    <v-btn size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="disconnect">Disconnect</v-btn>
-  </v-app-bar>
-  <main @keypress="debug">
+  <main @keypress="keypress">
+    <nav id="vertical-nav" class="d-flex flex-column align-center" :style="{ background: color }">
+      <IconButton @click="debug" class="mt-2" icon="mdi-table" title="Table List" />
+      
+      <!-- Bottom actions -->
+      <div class="d-flex flex-column mt-auto mb-1 align-center">
+        <IconButton @click="debug" class="mb-2" title="Reconnect" icon="mdi-cached" />
+        <IconButton @click="disconnect" class="mb-2 icon-flip-h" title="Disconnect" icon="mdi-logout" />
+      </div>
+    </nav>
+
     <section id="view--sidebar" style="width:256px; min-width:256px;" ref="elSidebar">
-      <v-text-field density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter"></v-text-field>
-      <v-btn size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="loadTables">Refresh Tables</v-btn>
+      <v-autocomplete ref="elDatabaseSelector" v-model="selectedDatabase" :items="databaseList" item-title="Database" hide-details
+        variant="solo" rounded label="Select Database" no-data-text="No databases found" single-line
+      >
+        <template v-slot:append>
+          <v-btn @click="reloadTablesAndDatabases" class="mr-1 ml-0" size="small" variant="tonal" icon="mdi-refresh" title="Refresh Database List" rounded />
+        </template>
+      </v-autocomplete>
+      <v-text-field ref="elTableFilter" variant="solo" density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter" rounded />
       <v-list id="table-list">
         <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="debug"
           v-show="matchesTableFilter(table)"
@@ -163,14 +147,14 @@ loadTables();
       </v-list>
     </section>
 
-    <div id="sidebar-resize-handle" @mousedown="startResize" :style="{ background: color }"></div>
+    <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
     <section id="view--content">
-      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor" @keypress="debug">
-        <SqlEditor v-model="queryText" @run-selected="runQuery" />
+      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor">
+        <QueryEditor v-model="queryText" @run-selected="runQuery" />
       </div>
 
-      <hr id="editor-resize-handle" @mousedown="startResize" :style="{ background: color }" />
+      <ResizeHandle :color="color" :target="elEditor" :thickness="5" horizontal />
 
       <div id="view--actions" class="d-flex flex-row align-center">
         <v-btn v-bind="{ color }" size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="runQuery"
@@ -178,25 +162,23 @@ loadTables();
       </div>
 
       <div id="view--results">
-        <v-overlay v-model="isQuerying" contained>
-          <v-icon icon="loading" size="x-large" />
-        </v-overlay>
+        <QueryWait :show="isQuerying" />
 
         <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
 
-        <table v-if="results && !isQuerying">
+        <table v-if="queryResult && !isQuerying">
           <thead>
-            <tr><th v-for="value, field in results[0]" v-text="field" width="150" /></tr>
+            <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
           </thead>
           <tbody>
-            <tr v-for="row in results"><td v-for="value in row" v-text="value" /></tr>
+            <tr v-for="row in queryResult.rows"><td v-for="field in queryResult.fields" v-text="row[field]" /></tr>
           </tbody>
         </table>
       </div>
 
       <div id="view--stats">
-        <v-chip density="compact" variant="plain" v-if="showResultsCount">Rows: {{ resultsCount }}</v-chip>
-        <v-chip density="compact" variant="plain" v-if="showResultsTime">Time: {{ resultsTime }}ms</v-chip>
+        <v-chip density="compact" variant="plain" v-if="showResultsCount">Rows: {{ queryResult.num_rows }}</v-chip>
+        <v-chip density="compact" variant="plain" v-if="showResultsTime">Time: {{ queryResult.elapsed_ms }}ms</v-chip>
       </div>
     </section>
 
@@ -204,9 +186,15 @@ loadTables();
 </template>
 
 <style lang="scss" scoped>
-$navHeight: 48px;
 $actionHeight: 32px;
-$handleThickness: 6px;
+$navHeight: 0px;
+
+nav#vertical-nav {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  background-color: rgba(var(--v-theme-primary));
+}
 
 main {
   margin-top: $navHeight;
@@ -225,14 +213,22 @@ main {
     width: inherit;
     position: relative;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+
+    > * {
+      flex-grow: 0;
+    }
 
     #table-list {
-      height: calc(100% - 42px);
+      flex-grow: 1;
       overflow-y: auto;
       overflow-x: clip;
     }
 
     .li-table {
+      font-size: 0.8em;
       height: 28px;
       min-height: 16px;
       padding: 4px 16px;
@@ -260,14 +256,18 @@ main {
     #view--actions {
       border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
       height: $actionHeight;
+      min-height: $actionHeight;
     }
 
     #view--results {
       position: relative;
       overflow: auto;
+      margin-bottom: $actionHeight;
+      min-width: 100%;
 
       table {
         border-spacing: 0;
+        min-width: 100%;
 
         th {
           height: 2em;
@@ -295,34 +295,13 @@ main {
     }
 
     #view--stats {
+      position: absolute;
+      bottom: 0;
       height: $actionHeight;
+      min-height: $actionHeight;
+      width: 100%;
       border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
     }
   }
-}
-
-.schema-selector-container {
-  max-width: 200px;
-  width: 200px;
-}
-
-#editor-resize-handle {
-  box-sizing: border-box;
-  height: $handleThickness;
-  min-height: $handleThickness;
-  border: none;
-  background-color: rgba(var(--v-theme-primary));
-  cursor: row-resize;
-}
-
-#sidebar-resize-handle {
-  height: 100%;
-  width: $handleThickness;
-  min-width: $handleThickness;
-  box-sizing: border-box;
-  border: none;
-  background-color: rgba(var(--v-theme-primary));
-  cursor: col-resize;
-  // cursor: ew-resize;
 }
 </style>

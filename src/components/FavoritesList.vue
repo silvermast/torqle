@@ -1,7 +1,10 @@
 <script setup>
-import useFavoritesStore from '~/store/favorites.js';
+import useFavoritesStore from '~/store/main.js';
+import { defineEmits } from 'vue';
 
+const emit = defineEmits('connect');
 const store = useFavoritesStore();
+
 
 /**
  * on doubleclick, connect. on single click, set favorite.

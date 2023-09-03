@@ -1,3 +1,9 @@
+# Possible Names
+- SeaQuill
+- IvyEye
+- SeaCat
+
+
 # Tauri + Vue 3
 
 https://tauri.app/
