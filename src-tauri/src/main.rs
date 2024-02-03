@@ -10,7 +10,7 @@ use users::get_current_username;
 
 // use mysql::*;
 // use mysql::prelude::*;
-use sqlx::AnyPool;
+// use sqlx::AnyPool;
 
 use adapters::{Adapter, AdapterOpts, QueryError, QueryResult, SshOpts};
 use tauri::{CustomMenuItem, Menu, MenuItem, State, Submenu, Window};
@@ -49,7 +49,10 @@ async fn query<'conn>(
     let uuid: String = window.label().into();
     let conn: Adapter = {
         let connections = state.0.try_lock().map_err(QueryError::from)?;
-        connections.get(&uuid).ok_or(QueryError::from("No connection found bound to the window!"))?.clone()
+        connections
+            .get(&uuid)
+            .ok_or(QueryError::from("No connection found bound to the window!"))?
+            .clone()
     };
 
     // let conn: &'_ Adapter = get_window_connection(state, window)?;

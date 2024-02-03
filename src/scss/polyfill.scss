@@ -1,0 +1,10 @@
+#app {
+    /* Using "padding-inline: var() var()" in native safari seems to not quite work */
+    .v-field__input {
+        padding-inline: unset;
+        padding-left: var(--v-field-padding-start);
+        padding-inline-left: var(--v-field-padding-start);
+        padding-right: var(--v-field-padding-end);
+        padding-inline-right: var(--v-field-padding-end);
+    }
+}

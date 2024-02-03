@@ -112,7 +112,7 @@ impl Adapter {
         let mut conn = self.pool.get_conn().await.map_err(QueryError::from)?;
 
         if let Some(db_name) = database {
-            conn.exec_drop("USE ?", vec![db_name]).await.map_err(QueryError::from)?;
+            conn.query_drop(format!("USE `{}`", db_name)).await.map_err(QueryError::from)?;
         }
 
         println!("QUERY: {}", query);

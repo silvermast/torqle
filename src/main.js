@@ -12,25 +12,11 @@ import * as directives from 'vuetify/directives';
 
 const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-// const vuetifyDefaults = {
-//   global: {
-//     density: 'compact',
-//   },
-//   VRow: { dense: true },
-//   VBtn: { density: 'default', rounded: true },
-//   VTextField: {
-//     paste(val) {
-//       console.log(val);
-//       return val;
-//     },
-//   },
-// };
-
 const vuetify = createVuetify({
   components,
   directives,
   defaults: {
-    global: { density: 'compact' },
+    // global: { density: 'compact' },
     VRow: { dense: true },
     VBtn: { density: 'default', rounded: true },
   },
