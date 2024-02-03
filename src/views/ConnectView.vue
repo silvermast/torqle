@@ -35,7 +35,14 @@ const driver = computed(() => drivers.find(d => d.label === connection.value.dri
 
 const lastError = ref();
 
+const selectedColor = computed(() => connection.value.color ?? 'primary');
+
 watch(connection, () => lastError.value = null);
+
+function handleError(e) {
+  console.error(e);
+  lastError.value = String(e.error ?? e);
+}
 
 async function testConnection() {
   hideSnack();
@@ -46,9 +53,7 @@ async function testConnection() {
     const rsp = await connector.test();
     makeHappySnack(rsp);
   } catch (e) {
-    console.error(e);
-    lastError.value = (e.error ?? e).toString();
-    // makeSpicySnack(e);
+    handleError(e);
   }
   isConnecting.value = false;
 }
@@ -62,9 +67,7 @@ async function connect() {
     await connector.connect();
     emit('connect', connector);
   } catch (e) {
-    console.error(e);
-    lastError.value = (e.error ?? e).toString();
-    // makeSpicySnack(e);
+    handleError(e);
   }
   isConnecting.value = false;
 }
@@ -115,7 +118,8 @@ if (/localhost:1420/.test(window.location)) {
               <v-text-field label="SSH Host" density="compact" v-model="connection.sshOpts.host" variant="outlined" />
             </v-col>
             <v-col cols="4">
-              <v-text-field label="Port" density="compact" v-model="connection.sshOpts.port" variant="outlined" type="number" />
+              <v-text-field label="Port" density="compact" v-model="connection.sshOpts.port" variant="outlined"
+                type="number" />
             </v-col>
           </v-row>
           <v-text-field label="SSH User" density="compact" v-model="connection.sshOpts.user" variant="outlined" />
@@ -124,7 +128,8 @@ if (/localhost:1420/.test(window.location)) {
               <Password label="SSH Password" density="compact" v-model="connection.sshOpts.password" variant="outlined" />
             </v-col>
             <v-col cols="6" class="pl-3">
-              <v-btn prepend-icon="mdi-shield-key" @click="openSshKeyDialog" :disabled="isOpeningFile" variant="outlined" color="grey">
+              <v-btn prepend-icon="mdi-shield-key" @click="openSshKeyDialog" :disabled="isOpeningFile" variant="outlined"
+                color="grey">
                 Select SSH Key
               </v-btn>
               <div><small v-if="connection.sshOpts.keyfile" v-text="connection.sshOpts.keyfile" /></div>
@@ -144,7 +149,7 @@ if (/localhost:1420/.test(window.location)) {
           <v-progress-circular v-if="isConnecting" indeterminate></v-progress-circular>
 
           <v-btn class="mr-2" rounded @click="testConnection" variant="outlined" :disabled="isConnecting">Test</v-btn>
-          <v-btn rounded color="primary" type="submit" variant="elevated" @click="connect"
+          <v-btn rounded :color="selectedColor" type="submit" variant="elevated" @click="connect"
             :disabled="isConnecting">Connect</v-btn>
         </v-card-actions>
       </v-card>

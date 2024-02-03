@@ -47,16 +47,18 @@ class TestConnector extends Connector {
                 userId: faker.string.uuid(),
                 username: faker.internet.userName(),
                 email: faker.internet.email(),
+                bio: faker.person.bio(),
+                paragraph: faker.lorem.paragraphs(),
                 avatar: faker.image.avatar(),
                 password: faker.internet.password(),
-                birthdate: faker.date.birthdate(),
-                registeredAt: faker.date.past(),
+                birthdate: faker.date.birthdate().toJSON(),
+                registeredAt: faker.date.past().toJSON(),
                 secondary_contact_email: faker.internet.email(),
                 secondary_contact_avatar: faker.image.avatar(),
-                secondary_contact_birthdate: faker.date.birthdate(),
+                secondary_contact_birthdate: faker.date.birthdate().toJSON(),
             }));
-            resolve({ rows, num_rows, elapsed_ms: Math.round(Math.random() * 100, 2) });
-        }, 5_000))
+            resolve({ rows, fields: Object.keys(rows[0]), num_rows, elapsed_ms: Math.round(Math.random() * 100, 2) });
+        }, 500));
     }
 }
 export { TestConnector };

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import ace from 'ace-builds';
+import ace, { Range } from 'ace-builds';
 import aceThemeLightUrl from 'ace-builds/src-noconflict/theme-cloud9_day?url';
 import aceThemeDarkUrl from 'ace-builds/src-noconflict/theme-cloud9_night?url';
 import aceModeSqlUrl from 'ace-builds/src-noconflict/mode-sql?url';
@@ -8,6 +8,8 @@ import aceModeMysqlUrl from 'ace-builds/src-noconflict/mode-mysql?url';
 import aceModePostgresUrl from 'ace-builds/src-noconflict/mode-pgsql?url';
 import aceModeSqlServerUrl from 'ace-builds/src-noconflict/mode-sqlserver?url';
 import aceModeJavascriptUrl from 'ace-builds/src-noconflict/mode-javascript?url';
+
+const delimiter = ';';
 
 const modes = {
   mysql: { path: 'ace/mode/mysql', module: aceModeMysqlUrl },
@@ -36,50 +38,63 @@ const query = computed({
 });
 
 const elEditor = ref();
-const cursor = ref({
-  start: 0,
-  end: 0,
-});
+
+let selectedQueryMarkerId = null;
 
 function getQuery() {
-  return aceEditor?.getSelectedText() || aceEditor?.getValue();
+  return aceEditor?.getSelectedText() || getQueryUnderCursor() || aceEditor?.getValue();
 }
 
-/**
- * @todo: add ability to run query under cursor
- */
-// let debounce;
-// function emitSelectedQuery(event) {
-//   clearTimeout(debounce);
-//   debounce = setTimeout(() => {
-//     const text = event.target.value;
-//     const start = event.target.selectionStart;
-//     const end = event.target.selectionEnd;
-//     cursor.value = { start, end };
+function getQueryUnderCursor() {
+  const lines = aceEditor.session.selection.cursor.document.getAllLines();
+  const { column, row } = aceEditor.session.selection.cursor;
 
-//     let startIndex = start;
-//     let endIndex = end;
-//     if (start === end) { // if no selection is made, pull the highlighted query
-//       // look backwards for a delimiter (;) and set startIndex to that index + 1
-//       for (let i = start - 1; i >= 0; i--) {
-//         startIndex = i; // support returning 0 if there's only 1 query in the dataset
-//         if (text[i] === ';') {
-//           startIndex++; // increment by 1 so we don't include the ;
-//           break;
-//         }
-//       }
-//       // look forwards for a delimiter
-//       for (let i = end; i <= text.length - 1; i++) {
-//         endIndex = i;
-//         if (text[i] === ';') {
-//           break;
-//         }
-//       }
-//     }
+  const start = findDelimiterBefore({ lines, column, row });
+  const end = findDelimiterAfter({ lines, column, row });
+  const range = new Range(start.row, start.column, end.row, end.column);
+  
+  aceEditor.session.removeMarker(selectedQueryMarkerId);
+  selectedQueryMarkerId = aceEditor.session.addMarker(range, 'ace_active-line', 'text');
+  
+  const result = aceEditor.session.doc.getTextRange(range);
+  console.log('queryUnderCursor', { start, end, result });
+  return result;
+}
 
-//     query.value = text.slice(startIndex, endIndex);
-//   }, 50);
-// }
+function findDelimiterBefore({ lines, column, row }) {
+  // loop backwards through lines
+  for (let i = row; i >= 0; i--) {
+    // For starting row, trim off everything _after_ the cursor position.
+    let text = i === row ? lines[i].substr(0, column) : lines[i];
+    if (text.includes(delimiter)) {
+      return {
+        column: text.lastIndexOf(delimiter) + 1,
+        row: i,
+      };
+    }
+  }
+  return { column: 0, row: 0 }; // no match? assume beginning of document
+}
+
+function findDelimiterAfter({ lines, column, row }) {
+  // loop forwards through lines
+  for (let i = row; i < lines.length; i++) {
+    const text = lines[i];
+    const start = i === row ? column : 0; // For starting row, start searching only after the cursor position.
+    if (text.includes(delimiter, start)) {
+      return {
+        column: text.indexOf(delimiter, start),
+        row: i,
+      }
+    }
+  }
+
+  // no match? assume end of content
+  return {
+    column: lines.length - 1,
+    row: lines[lines.length - 1].length - 1,
+  }
+}
 
 const isDark = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -92,9 +107,22 @@ onMounted(() => {
     mode: 'ace/mode/mysql',
     theme: isDark ? 'ace/theme/cloud9_night' : 'ace/theme/cloud9_day',
     printMargin: false,
+    highlightActiveLine: false,
   });
 
-  aceEditor.setValue('SELECT * FROM testdb.users LIMIT 100;');
+  aceEditor.setValue(`SELECT * FROM testdb.users LIMIT 100;
+  
+  SELECT
+    foo,
+    bar,
+    blah
+  FROM db.table
+  JOIN db.meta ON foo = bar
+  WHERE foo = true
+  AND bar = 'blah'
+  LIMIT 100
+  ;
+  `);
 
   const emitData = () => {
     const newValue = aceEditor.getSelectedText() || aceEditor.getValue();
@@ -103,8 +131,23 @@ onMounted(() => {
     }
   }
 
-  aceEditor.on('change', emitData);
-  aceEditor.on('changeSelectionStyle', emitData);
+  let selectedText = null;
+  let queryUnderCursor = null;
+
+  aceEditor.session.on('change', emitData);
+  aceEditor.session.on('changeSelectionStyle', emitData);
+  // aceEditor.session.selection.on('changeSelection', e => {
+  //   console.log('changeSelection', e);
+  //   const { selection } = aceEditor.session;
+  //   // const range = selection.getRange();
+  //   console.log('Selected Text:', selection.doc.getTextRange(selection.getRange()));
+  // });
+  aceEditor.session.selection.on('changeCursor', e => {
+    console.log('cursor', e);
+    const { selection } = aceEditor.session;
+    // const range = selection.getRange();
+    console.log('Query:', getQuery());
+  });
 
   aceEditor.commands.addCommand({
     name: 'runQuery',

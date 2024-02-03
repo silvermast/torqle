@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryEditor from '~/components/QueryEditor.vue';
 import QueryWait from '~/components/QueryWait.vue';
@@ -29,6 +30,9 @@ const queryText = ref('-- Run a query!');
 const queryResult = ref();
 const isQuerying = ref(false);
 const queryError = ref();
+
+const dialogText = ref();
+const showDialog = computed(() => !!dialogText.value);
 
 const showResultsCount = computed(() => queryResult.value?.num_rows !== undefined);
 const showResultsTime = computed(() => queryResult.value?.elapsed_ms !== undefined);
@@ -105,14 +109,37 @@ function debug($event) {
   console.log($event);
 }
 
-function keypress(e) {
+function keyup(e) {
+  console.log(e);
   const cmdKey = /Mac/.test(window.navigator.userAgent) ? 'metaKey' : 'ctrlKey'
   if (e.code === 'KeyJ' && e[cmdKey]) {
     elDatabaseSelector.value.focus();
   } else if (e.code === 'keyK' && e[cmdKey]) {
     elTableFilter.value.focus();
+  } else if (e.code === 'Escape') {
+    dialogText.value = null;
   }
 }
+
+/**
+ * Keyboard Shortcuts
+ */
+
+register('CommandOrControl+J', () => {
+  elDatabaseSelector.value?.focus();
+});
+register('CommandOrControl+K', () => {
+  elTableFilter.value?.focus();
+});
+register('Escape', () => {
+  dialogText.value = null;
+});
+
+onUnmounted(() => unregisterAll()); // remove all shortcuts
+
+/**
+ * Page Initialization
+ */
 
 loadDatabases();
 loadTables();
@@ -120,7 +147,7 @@ loadTables();
 </script>
 
 <template>
-  <main @keypress="keypress">
+  <main>
     <nav id="vertical-nav" class="d-flex flex-column align-center" :style="{ background: color }">
       <IconButton @click="debug" class="mt-2" icon="mdi-table" title="Table List" />
       
@@ -132,14 +159,14 @@ loadTables();
     </nav>
 
     <section id="view--sidebar" style="width:256px; min-width:256px;" ref="elSidebar">
-      <v-autocomplete ref="elDatabaseSelector" v-model="selectedDatabase" :items="databaseList" item-title="Database" hide-details
-        variant="solo" rounded label="Select Database" no-data-text="No databases found" single-line
+      <v-autocomplete class="mx-2 mt-2" ref="elDatabaseSelector" v-model="selectedDatabase" :items="databaseList" item-title="Database" hide-details
+        variant="solo" rounded density="compact" label="Select Database" no-data-text="No databases found" single-line
       >
         <template v-slot:append>
-          <v-btn @click="reloadTablesAndDatabases" class="mr-1 ml-0" size="small" variant="tonal" icon="mdi-refresh" title="Refresh Database List" rounded />
+          <v-btn @click="reloadTablesAndDatabases" class="mr-1 ml-0" size="x-small" variant="tonal" icon="mdi-refresh" title="Refresh Database List" rounded />
         </template>
       </v-autocomplete>
-      <v-text-field ref="elTableFilter" variant="solo" density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter" rounded />
+      <v-text-field class="mx-2 my-2" ref="elTableFilter" variant="solo" density="compact" label="Filter Tables" clearable hide-details single-line v-model="tableFilter" rounded />
       <v-list id="table-list">
         <v-list-item class="li-table" density="compact" v-for="table in tableList" @click="debug"
           v-show="matchesTableFilter(table)"
@@ -171,16 +198,27 @@ loadTables();
             <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
           </thead>
           <tbody>
-            <tr v-for="row in queryResult.rows"><td v-for="field in queryResult.fields" v-text="row[field]" /></tr>
+            <tr v-for="row in queryResult.rows">
+              <td class="result-cell" v-for="field in queryResult.fields" v-text="row[field]" @click="dialogText = row[field]" />
+            </tr>
           </tbody>
         </table>
       </div>
 
-      <div id="view--stats">
+      <div id="view--stats" class="d-flex align-center">
         <v-chip density="compact" variant="plain" v-if="showResultsCount">Rows: {{ queryResult.num_rows }}</v-chip>
-        <v-chip density="compact" variant="plain" v-if="showResultsTime">Time: {{ queryResult.elapsed_ms }}ms</v-chip>
+        <v-chip density="compact" variant="plain" v-if="showResultsTime">Query Time: {{ queryResult.elapsed_ms }}ms</v-chip>
       </div>
     </section>
+
+    <v-dialog v-model="showDialog" scrollable width="auto" rounded>
+      <v-card>
+        <v-card-title class="d-flex justify-end">
+          <v-icon icon="mdi-close" title="Close" @click="dialogText = null" />
+        </v-card-title>
+        <v-card-text>{{ dialogText }}</v-card-text>
+      </v-card>
+    </v-dialog>
 
   </main>
 </template>
@@ -287,9 +325,13 @@ main {
           font-size: 0.8em;
           padding: 2px 4px;
           border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
-          overflow-x: hidden;
+          overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
+          max-width: 200px;
+        }
+        .result-cell {
+          cursor: pointer;
         }
       }
     }

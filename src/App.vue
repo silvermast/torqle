@@ -18,30 +18,14 @@ function disconnect($event) {
 
 document.title = 'New Connection';
 
-const vuetifyDefaults = ref({
-  global: {
-    density: 'compact',
-  },
-  VRow: { dense: true },
-  VBtn: { density: 'default' },
-  VTextField: { 
-    paste(val) {
-      console.log(val);
-      return val;
-    } 
-  }
-});
-
 </script>
 
 <template>
-  <v-defaults-provider :defaults="vuetifyDefaults">
-    <v-app>
-      <Snacks />
-      <ConnectView v-if="!connector" @connect="connect" />
-      <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
-    </v-app>
-  </v-defaults-provider>
+  <v-app>
+    <Snacks />
+    <ConnectView v-if="!connector" @connect="connect" />
+    <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
+  </v-app>
 </template>
 
 <style scoped>
