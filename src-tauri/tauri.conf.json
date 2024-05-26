@@ -27,10 +27,10 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "decorations": false,
+        "decorations": true,
         "title": "Taurbee",
         "width": 1280,
-        "height": 1024
+        "height": 800
       }
     ],
     "security": {
