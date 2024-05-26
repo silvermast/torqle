@@ -6,52 +6,69 @@ use ssh_jumper::{
     SshJumper,
 };
 use std::{borrow::Cow, collections::HashMap, path::Path, sync::Mutex};
+use serde::Serialize;
 use users::get_current_username;
 
 // use mysql::*;
 // use mysql::prelude::*;
 // use sqlx::AnyPool;
 
-use adapters::{Adapter, AdapterOpts, QueryError, QueryResult, SshOpts};
+use adapters::{Adapter, AdapterOpts, QueryResult, SshOpts};
 use tauri::{CustomMenuItem, Menu, MenuItem, State, Submenu, Window};
 use uuid::Uuid;
+use crate::adapters::AdapterEnum;
 
 mod adapters;
 mod ssh;
 
+#[derive(Serialize, Debug)]
+pub struct AppError {
+    // query: String,
+    pub error: String,
+}
+impl AppError {
+    pub fn from<E: std::fmt::Display>(err: E) -> AppError {
+        let error_string = format!("{}", err);
+        println!("Error: {}", error_string); // debug!
+        AppError {
+            error: error_string,
+        }
+    }
+}
+
 #[tauri::command]
-async fn connect(
+async fn adapter_connect(
     window: Window,
     driver_opts: AdapterOpts,
     use_ssh: bool,
     ssh_opts: Option<SshOpts>,
     state: State<'_, Connections>,
-) -> Result<bool, QueryError> {
+) -> Result<bool, AppError> {
     let conn = if use_ssh {
         Adapter::connect(driver_opts, ssh_opts).await?
     } else {
         Adapter::connect(driver_opts, None).await?
     };
     {
-        let mut connections = state.0.try_lock().map_err(QueryError::from)?;
+        let mut connections = state.0.try_lock().map_err(AppError::from)?;
         connections.insert(window.label().to_string(), conn);
     }
     Ok(true)
 }
 
 #[tauri::command]
-async fn query<'conn>(
+async fn adapter_query<'conn>(
     window: Window,
     query: String,
     database: Option<String>,
     state: State<'_, Connections>,
-) -> Result<QueryResult, QueryError> {
+) -> Result<QueryResult, AppError> {
     let uuid: String = window.label().into();
     let conn: Adapter = {
-        let connections = state.0.try_lock().map_err(QueryError::from)?;
+        let connections = state.0.try_lock().map_err(AppError::from)?;
         connections
             .get(&uuid)
-            .ok_or(QueryError::from("No connection found bound to the window!"))?
+            .ok_or(AppError::from("No connection found bound to the window!"))?
             .clone()
     };
 
@@ -60,11 +77,11 @@ async fn query<'conn>(
 }
 
 #[tauri::command]
-async fn test_connection(
+async fn adapter_test(
     driver_opts: AdapterOpts,
     use_ssh: bool,
     ssh_opts: Option<SshOpts>,
-) -> Result<String, QueryError> {
+) -> Result<String, AppError> {
     let mut conn = if use_ssh {
         Adapter::connect(driver_opts, ssh_opts).await?
     } else {
@@ -155,7 +172,7 @@ fn build_menu() -> Menu {
     // }
 }
 
-struct Connections(Mutex<HashMap<String, Adapter>>);
+struct Connections(Mutex<HashMap<String, AdapterEnum>>);
 
 fn main() {
     tauri::Builder::default()
@@ -191,9 +208,9 @@ fn main() {
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
-            connect,
-            test_connection,
-            query,
+            adapter_connect,
+            adapter_test,
+            adapter_query,
             fetch_key
         ])
         .run(tauri::generate_context!())
