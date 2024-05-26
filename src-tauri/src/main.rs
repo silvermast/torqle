@@ -2,21 +2,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use rand::{thread_rng, Rng};
 use serde::Serialize;
-use std::{borrow::BorrowMut, collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 use users::get_current_username;
 
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
-// use tauri::{CustomMenuItem, Menu, MenuItem, State, Submenu, Window};
-use tauri::{menu::{PredefinedMenuItem, Submenu}, AppHandle, Manager, State, Window};
-use tauri::menu::{Menu, MenuItem, MenuBuilder};
-use uuid::Uuid;
+use tauri::{menu::{PredefinedMenuItem, Submenu}, State, Window};
+use tauri::menu::{Menu, MenuItem};
 
 mod adapters;
 mod ssh;
 
 #[derive(Serialize, Debug)]
 pub struct AppError {
-    // query: String,
     pub error: String,
 }
 impl AppError {
@@ -185,6 +182,7 @@ fn generate_aes_256_key() -> String {
     // }
 // }
 
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
@@ -238,11 +236,11 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            fetch_key,
             adapter_connect,
-            adapter_test,
             adapter_disconnect,
-            adapter_query
+            adapter_test,
+            adapter_query,
+            fetch_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

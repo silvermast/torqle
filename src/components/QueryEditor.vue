@@ -25,7 +25,9 @@ const modes = {
  * @url https://www.npmjs.com/package/vue3-ace-editor
  */
 
+/** @type {import('ace-builds').Ace.Editor} */
 let aceEditor;
+
 const emit = defineEmits(['runSelected', 'update:modelValue']);
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -41,11 +43,17 @@ const elEditor = ref();
 
 let selectedQueryMarkerId = null;
 
-function getQuery() {
-  return aceEditor?.getSelectedText() || getQueryUnderCursor() || aceEditor?.getValue();
-}
+function moveCursor() {
+  // remove any background highlighting for the selected query
+  aceEditor.session.removeMarker(selectedQueryMarkerId);
+  
+  // If there's a manual selection, return that, verbatim.
+  if (aceEditor?.getSelectedText()) {
+    query.value = aceEditor?.getSelectedText();
+    return;
+  }
 
-function getQueryUnderCursor() {
+  // If there's no selection, infer the query based on the cursor position and specified delimiter
   const lines = aceEditor.session.selection.cursor.document.getAllLines();
   const { column, row } = aceEditor.session.selection.cursor;
 
@@ -56,9 +64,7 @@ function getQueryUnderCursor() {
   aceEditor.session.removeMarker(selectedQueryMarkerId);
   selectedQueryMarkerId = aceEditor.session.addMarker(range, 'ace_active-line', 'text');
   
-  const result = aceEditor.session.doc.getTextRange(range);
-  console.log('queryUnderCursor', { start, end, result });
-  return result;
+  query.value = aceEditor.session.doc.getTextRange(range);
 }
 
 function findDelimiterBefore({ lines, column, row }) {
@@ -67,10 +73,20 @@ function findDelimiterBefore({ lines, column, row }) {
     // For starting row, trim off everything _after_ the cursor position.
     let text = i === row ? lines[i].substr(0, column) : lines[i];
     if (text.includes(delimiter)) {
-      return {
-        column: text.lastIndexOf(delimiter) + 1,
-        row: i,
-      };
+      let textTrimmed = text.trim();
+      if (textTrimmed.lastIndexOf(delimiter) === textTrimmed.length - 1) {
+        // is there text on the same line after the delimiter? If not, use the next line.
+        return { 
+          column: 0,
+          row: i + 1,
+        };
+      } else {
+        // e.g. SELECT foo; SELE|CT bar;
+        return {
+          column: text.lastIndexOf(delimiter) + 1,
+          row: i,
+        };
+      }
     }
   }
   return { column: 0, row: 0 }; // no match? assume beginning of document
@@ -83,7 +99,7 @@ function findDelimiterAfter({ lines, column, row }) {
     const start = i === row ? column : 0; // For starting row, start searching only after the cursor position.
     if (text.includes(delimiter, start)) {
       return {
-        column: text.indexOf(delimiter, start),
+        column: text.indexOf(delimiter, start) + 1,
         row: i,
       }
     }
@@ -99,7 +115,7 @@ function findDelimiterAfter({ lines, column, row }) {
 const isDark = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
 onMounted(() => {
-  ace.config.setModuleUrl('ace/mode/mysql', aceModeMysqlUrl);
+  ace.config.setModuleUrl('ace/mode/mysql', aceModeMysqlUrl); /** @todo move to connection, or computed Dialect prop */
   ace.config.setModuleUrl('ace/theme/cloud9_day', aceThemeLightUrl);
   ace.config.setModuleUrl('ace/theme/cloud9_night', aceThemeDarkUrl);
 
@@ -124,41 +140,23 @@ onMounted(() => {
   ;
   `);
 
-  const emitData = () => {
-    const newValue = aceEditor.getSelectedText() || aceEditor.getValue();
-    if (query.value !== newValue) {
-      query.value = newValue;
-    }
-  }
+  aceEditor.session.selection.on('changeCursor', () => moveCursor());
 
-  let selectedText = null;
-  let queryUnderCursor = null;
-
-  aceEditor.session.on('change', emitData);
-  aceEditor.session.on('changeSelectionStyle', emitData);
-  // aceEditor.session.selection.on('changeSelection', e => {
-  //   console.log('changeSelection', e);
-  //   const { selection } = aceEditor.session;
-  //   // const range = selection.getRange();
-  //   console.log('Selected Text:', selection.doc.getTextRange(selection.getRange()));
-  // });
-  aceEditor.session.selection.on('changeCursor', e => {
-    console.log('cursor', e);
-    const { selection } = aceEditor.session;
-    // const range = selection.getRange();
-    console.log('Query:', getQuery());
-  });
+  /**
+   * Keyboard Shortcuts!
+   * @see https://ace.c9.io/demo/keyboard_shortcuts.html
+   * @todo Update multicursor support to match Sublime (or vscode)
+   */
 
   aceEditor.commands.addCommand({
     name: 'runQuery',
     bindKey: {win: 'Ctrl-Enter',  mac: 'Command-Enter'},
     exec: function(editor) {
-        emit('runSelected', getQuery());
+        emit('runSelected', query.value);
     },
     readOnly: true,
-  })
+  });
 
-  // editor.commands.removeCommand
 });
 </script>
 
