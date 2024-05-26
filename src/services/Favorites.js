@@ -4,7 +4,7 @@ import {
     readTextFile,
     writeTextFile,
     createDir,
-} from '@tauri-apps/api/fs';
+} from '@tauri-apps/plugin-fs';
 import { encrypt, decrypt, fetchKey, isEncrypted } from './Crypto.js';
 
 const fileOpts = { dir: BaseDirectory.AppLocalData };

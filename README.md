@@ -2,6 +2,7 @@
 - SeaQuill
 - IvyEye
 - SeaCat
+- Voxide (vue + iron oside
 
 
 # Tauri + Vue 3
