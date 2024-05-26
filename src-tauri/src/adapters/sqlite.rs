@@ -1,79 +1,56 @@
-use std::{collections::HashMap, error::Error};
-use mysql::prelude::Queryable;
-use mysql::Row;
+use async_sqlite::{JournalMode, Pool, PoolBuilder};
+pub use serde_json::Map as JsonMap;
+pub use serde_json::Value as JsonValue;
 
-use super::{ClientConnection, QueryResult, QueryError};
+use super::{Adapter, AdapterOpts, QueryResult};
+use crate::AppError;
 
-#[derive(Clone, Debug)]
-pub struct Sqlite {
-    opts: HashMap<String, String>,
-    pool: mysql::Pool,
+pub async fn connect(opts: AdapterOpts) -> Result<SQLiteAdapter, AppError>
+where
+    SQLiteAdapter: Sized,
+{
+    /** @todo fix journal_mode to pass in as param */
+    let journal_mode = match opts.filepath.as_str() {
+        ":memory:" => JournalMode::Memory,
+        _ => JournalMode::Delete,
+    };
+
+    let pool = PoolBuilder::new()
+        .path(opts.filepath)
+        .journal_mode(journal_mode)
+        .open()
+        .await
+        .map_err(AppError::from)?;
+
+    Ok(SQLiteAdapter { pool: pool })
 }
 
-impl ClientConnection for Sqlite {
-    fn connect(opts: HashMap<String, String>) -> Result<Self, Box<dyn Error>> where Self: Sized {
-        let connection_opts = mysql::OptsBuilder::new().from_hash_map(&opts)?;
-        let pool = mysql::Pool::new(connection_opts)?;
-
-        Ok(Mysql { pool: pool, opts: opts })
-    }
-
-    fn test(opts: HashMap<String, String>) -> Result<bool, Box<dyn Error>> where Self: Sized {
-        let connection_opts = mysql::OptsBuilder::new().from_hash_map(&opts)?;
-        let pool = mysql::Pool::new(connection_opts)?;
+#[derive(Clone)]
+pub struct SQLiteAdapter {
+    pool: Pool,
+}
+impl Adapter for SQLiteAdapter {
+    async fn disconnect(&mut self) -> Result<bool, AppError> {
         Ok(true)
     }
 
-    fn change_schema(&mut self, value: String) -> Result<bool, Box<dyn Error>> {
-        self.set_opt("db_name".to_string(), value)
-    }
-
-    fn set_opt(&mut self, option: String, value: String) -> Result<bool, Box<dyn Error>> {
-        self.opts.insert(option, value);
-        Ok(true)
-    }
-
-    fn get_opt(&self, option: String) -> Option<String> {
-        match self.opts.get(&option.to_string()) {
-            Some(value) => Some(value.to_string()),
-            _ => None,
-        }
-    }
-
-    fn query(&self, query: String) -> Result<QueryResult, QueryError> {
-        let mut conn = self.pool.get_conn().map_err(|why| QueryError { error: why.to_string() })?;
-        let mut query_actual: String;
-
-        match self.get_opt("db_name".to_string()) {
-            Some(db_name) => {
-                // run a USE `database` query
-                println!("QUERY: USE {}", db_name);
-                conn.query_drop(format!("USE {}", db_name)).map_err(|err| QueryError { error: err.to_string() })?;
-                true
-            },
-            _ => false,
-        };
-        
+    async fn query(
+        &self,
+        query: String,
+        database: Option<String>,
+    ) -> Result<QueryResult, AppError> {
         let start_time = std::time::SystemTime::now();
-        println!("QUERY: {}", query);
-        let results = conn.query_map(query, |mut row: Row| {
-            let mut row_map = HashMap::new();
-            let columns = row.columns();
-            for index in 0..columns.len() {
-                let field: String = columns[index].name_str().into();
-                let value: String = row.take(index).unwrap_or("".to_string());
-                row_map.insert(field, value);
-            }
-            row_map
-        }).map_err(|why| QueryError { error: why.to_string() })?;
-
+        let results = vec![];
+        let fields = vec![];
         Ok(QueryResult {
-            elapsed_ms: start_time.elapsed().expect("Error parsing elapsed timestamp!").as_millis().to_string(),
+            elapsed_ms: start_time
+                .elapsed()
+                .expect("Error parsing elapsed timestamp!")
+                .as_millis()
+                .to_string(),
             num_rows: results.len().to_string(),
-            rows: results,
+            rows: Vec::from_iter(results),
+            fields: fields,
         })
-    }
-    fn disconnect(&mut self) -> bool {
-        true
     }
 }

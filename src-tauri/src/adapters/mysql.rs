@@ -1,58 +1,141 @@
-use std::{collections::HashMap};
-use mysql::{prelude::Queryable};
-use mysql::Row;
+use std::collections::HashMap;
+use std::panic::catch_unwind;
 
-use super::{Adapter, AdapterOpts, QueryResult, QueryError};
+use chrono::{TimeZone, Utc};
+use mysql_async::prelude::Queryable;
+use mysql_async::{OptsBuilder, Pool, Row, Value};
 
-#[derive(Clone, Debug)]
-pub struct Mysql {
-    pool: mysql::Pool,
+pub use serde_json::Map as JsonMap;
+pub use serde_json::Value as JsonValue;
+
+use super::{Adapter, AdapterOpts, QueryResult};
+use crate::AppError;
+
+pub async fn connect(opts: AdapterOpts) -> Result<MySQLAdapter, AppError>
+where
+    MySQLAdapter: Sized,
+{
+    let mysql_opts = OptsBuilder::default()
+        .ip_or_hostname(opts.host)
+        .tcp_port(opts.port)
+        .user(Some(opts.user))
+        .pass(Some(opts.password))
+        .prefer_socket(false);
+
+    let pool = Pool::new(mysql_opts);
+
+    Ok(MySQLAdapter { pool: pool })
 }
 
-impl Adapter for Mysql {
-    fn connect(opts: AdapterOpts) -> Result<Self, QueryError> where Self: Sized {
-        let conn_uri = format!("mysql://{}:{}@{}:{}/", opts.user, opts.password, opts.host, opts.port);
-        println!("Connecting to {}", conn_uri);
-        let mysql_opts = mysql::Opts::from_url(conn_uri.as_str())
-            .map_err(QueryError::from)?;
-        
-        let pool = mysql::Pool::new(mysql_opts).map_err(QueryError::from)?;
-        println!("Created MySQL pool");
+#[derive(Clone)]
+pub struct MySQLAdapter {
+    pool: Pool,
+}
+impl Adapter for MySQLAdapter {
+    async fn query(
+        &self,
+        query: String,
+        database: Option<String>,
+    ) -> Result<QueryResult, AppError> {
+        let mut conn = self.pool.get_conn().await.map_err(AppError::from)?;
 
-        Ok(Mysql { pool: pool })
-    }
-
-    fn query(&self, query: String, database: Option<String>) -> Result<QueryResult, QueryError> {
-        let mut conn = self.pool.get_conn().map_err(|why| QueryError { error: why.to_string() })?;
-
-        match database {
-            Some(db_name) => {
-                conn.query_drop(format!("USE {}", db_name)).map_err(|err| QueryError { error: err.to_string() })?;
-                ()
-            }
-            None => ()
+        if let Some(db_name) = database {
+            conn.query_drop(format!("USE `{}`", db_name))
+                .await
+                .map_err(AppError::from)?;
         }
 
-        let start_time = std::time::SystemTime::now();
         println!("QUERY: {}", query);
-        let results = conn.query_map(query, |mut row: Row| {
-            let mut row_map = HashMap::new();
-            let columns = row.columns();
-            for index in 0..columns.len() {
-                let field: String = columns[index].name_str().into();
-                let value: String = row.take(index).unwrap_or("".to_string());
-                row_map.insert(field, value);
-            }
-            row_map
-        }).map_err(|why| QueryError { error: why.to_string() })?;
+        let start_time = std::time::SystemTime::now();
+
+        let query_results: Vec<Row> = conn.query(query.as_str()).await.map_err(AppError::from)?;
+        println!("Retrieved {} results", query_results.len());
+        let mut results: Vec<HashMap<String, JsonValue>> = Vec::new();
+
+        let fields: Vec<String> = if query_results.is_empty() {
+            Vec::new()
+        } else {
+            Vec::from_iter(
+                query_results[0]
+                    .columns()
+                    .iter()
+                    .map(|c| c.name_str().to_string()),
+            )
+        };
+
+        for row in query_results {
+            let row_map = parse_row(row)?;
+            results.push(row_map);
+        }
 
         Ok(QueryResult {
-            elapsed_ms: start_time.elapsed().expect("Error parsing elapsed timestamp!").as_millis().to_string(),
+            elapsed_ms: start_time
+                .elapsed()
+                .expect("Error parsing elapsed timestamp!")
+                .as_millis()
+                .to_string(),
             num_rows: results.len().to_string(),
-            rows: results,
+            rows: Vec::from_iter(results),
+            fields: fields,
         })
     }
-    fn disconnect(&mut self) -> bool {
-        true
+
+    async fn disconnect(&mut self) -> Result<bool, AppError> {
+        match self.to_owned().pool.disconnect().await {
+            Ok(_) => Ok(true),
+            Err(why) => Err(AppError::from(why)),
+        }
     }
+}
+
+fn parse_row(row: Row) -> Result<HashMap<String, JsonValue>, AppError> {
+    let mut map = HashMap::new();
+    let columns = row.columns();
+
+    for index in 0..columns.len() {
+        let field: String = columns[index].name_str().into();
+
+        let value: JsonValue = match row.get(index).unwrap() {
+            Value::NULL => JsonValue::Null,
+            Value::Bytes(x) => JsonValue::from(unsafe { String::from_utf8_unchecked(x) }),
+            Value::Int(x) => JsonValue::from(x as i64),
+            Value::UInt(x) => JsonValue::from(x as u64),
+            Value::Float(x) => JsonValue::from(x as f32),
+            Value::Double(x) => JsonValue::from(x as f64),
+            Value::Date(year, mon, day, 0u8, 0u8, 0u8, 0u32) => {
+                JsonValue::from(format!("{}-{}-{}", year, mon, day))
+            }
+            Value::Date(year, mon, day, hour, min, sec, _usec) => {
+                // Chrono's LocalResult only implements unwrap with a panic. So we need to catch it.
+                match catch_unwind(|| {
+                    Utc.with_ymd_and_hms(
+                        year as i32,
+                        mon as u32,
+                        day as u32,
+                        hour as u32,
+                        min as u32,
+                        sec as u32,
+                    )
+                    .unwrap()
+                }) {
+                    Ok(datetime) => JsonValue::String(datetime.to_rfc3339()),
+                    Err(err) => JsonValue::from("Invalid DateTime"),
+                }
+            }
+            Value::Time(_neg, days, hours, mins, secs, usecs) => {
+                // Chrono's LocalResult only implements unwrap with a panic. So we need to catch it.
+                match catch_unwind(|| {
+                    Utc.with_ymd_and_hms(0, 0, 0, hours as u32, mins as u32, secs as u32)
+                        .unwrap()
+                }) {
+                    Ok(datetime) => JsonValue::String(datetime.format("%T").to_string()),
+                    Err(_) => JsonValue::from("Invalid Time"),
+                }
+            }
+            _ => JsonValue::from("Unsupported type"),
+        };
+        map.insert(field, value);
+    }
+
+    Ok(map)
 }

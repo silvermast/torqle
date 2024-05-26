@@ -15,6 +15,8 @@ import TestFieldset from '~/components/fieldsets/TestFieldset.vue';
 import SqliteFieldset from '~/components/fieldsets/SqliteFieldset.vue';
 import MysqlFieldset from '~/components/fieldsets/MysqlFieldset.vue';
 
+document.title = 'New Connection';
+
 const drivers = [
   { label: 'Test', connector: TestConnector, fieldset: TestFieldset },
   { label: 'MySQL', connector: MysqlConnector, fieldset: MysqlFieldset },
@@ -32,10 +34,8 @@ const isConnecting = ref(false);
 const isOpeningFile = ref(false);
 
 const driver = computed(() => drivers.find(d => d.label === connection.value.driverName));
-
-const lastError = ref();
-
 const selectedColor = computed(() => connection.value.color ?? 'primary');
+const lastError = ref();
 
 watch(connection, () => lastError.value = null);
 
@@ -78,12 +78,6 @@ async function openSshKeyDialog() {
   isOpeningFile.value = false;
 }
 
-document.title = 'New Connection';
-
-if (/localhost:1420/.test(window.location)) {
-  connection.value.driverName = 'Test';
-}
-
 </script>
 
 <template>
@@ -111,6 +105,7 @@ if (/localhost:1420/.test(window.location)) {
               item-value="label" variant="outlined" label="Connection Type"></v-select>
           </v-col>
         </v-row>
+        <template v-if="connection.driverName !== 'Sqlite'">
         <v-switch density="compact" v-model="connection.useSsh" label="SSH Tunnel"></v-switch>
         <div v-if="connection.useSsh">
           <v-row>
@@ -136,13 +131,15 @@ if (/localhost:1420/.test(window.location)) {
             </v-col>
           </v-row>
         </div>
+        </template>
 
         <v-divider class="mb-5" />
 
         <component v-if="driver" :is="driver.fieldset" v-model="connection.driverOpts" />
 
-        <v-alert class="mb-2" v-if="lastError" :text="lastError" type="error" />
-
+        <v-alert class="mt-5" v-if="lastError" :text="lastError" type="error" />
+        
+        <v-divider class="my-5" />
         <v-card-actions class="d-flex">
           <v-btn class="mr-auto" rounded @click="store.saveFavorite(connection)" variant="outlined">Save</v-btn>
 
