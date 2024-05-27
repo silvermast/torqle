@@ -7,12 +7,12 @@ import Snacks from './components/Snacks.vue';
 let connector = ref();
 
 function connect($event) {
-  console.log('received connect');
+  console.log('received connect', $event);
   connector.value = $event;
   document.title = connector.value.title ?? 'Connection';
 }
 function disconnect($event) {
-  console.log('received disconnect');
+  console.log('received disconnect', $event);
   connector.value = null;
 }
 

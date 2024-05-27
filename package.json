@@ -14,7 +14,7 @@
   "dependencies": {
     "@mdi/font": "^7.2.96",
     "@mdi/js": "^7.2.96",
-    "@tauri-apps/api": "^1.4.0",
+    "@tauri-apps/api": "^2.0.0-beta.12",
     "@tauri-apps/cli": "^2.0.0-beta.18",
     "@tauri-apps/plugin-dialog": "^2.0.0-beta.3",
     "@tauri-apps/plugin-fs": "^2.0.0-beta.3",

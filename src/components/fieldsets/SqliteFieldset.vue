@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { open } from '@tauri-apps/api/dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { makeSpicySnack } from "../Snacks.vue";
 
 const emit = defineEmits(['update:modelValue']);
@@ -19,7 +19,8 @@ const isOpeningFile = ref(false);
 async function openDialog() {
   isOpeningFile.value = true;
   try {
-    data.value.filepath = await open();
+    const fileHandle = await open();
+    data.value.filepath = fileHandle.path;
   } catch (e) {
     makeSpicySnack(e);
     console.error(e);

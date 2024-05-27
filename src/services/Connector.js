@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api';
+import { invoke } from '@tauri-apps/api/core';
 
 class Connector {
     opts = {};
@@ -46,7 +46,14 @@ class Connector {
      * Tells the rust-end to create a connection. Internally, this is bound to the window.
      */
     async connect() {
-        return await invoke('adapter_connect', this.connectOpts);
+        try {
+            const rsp = await invoke('adapter_connect', this.connectOpts);
+            console.log('connect rsp', rsp);
+            return rsp;
+        } catch (e) {
+            console.error('Caught connect error', 3);
+            throw e;
+        }
     }
 
     /**

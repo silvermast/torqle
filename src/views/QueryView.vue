@@ -1,5 +1,5 @@
 <script setup>
-import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
+// import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryEditor from '~/components/QueryEditor.vue';
@@ -36,6 +36,7 @@ const showDialog = computed(() => !!dialogText.value);
 
 const showResultsCount = computed(() => queryResult.value?.num_rows !== undefined);
 const showResultsTime = computed(() => queryResult.value?.elapsed_ms !== undefined);
+const noResultsFound = computed(() => String(queryResult.value?.num_rows) === '0');
 
 watch(selectedDatabase, async (newValue) => {
   await connector.setDatabase(newValue);
@@ -74,9 +75,6 @@ async function runQuery() {
   try {
     queryResult.value = await connector.query(queryText.value, selectedDatabase.value);
     console.log(queryResult.value);
-    // results.value = queryResult.rows;
-    // resultsCount.value = queryResult.num_rows;
-    // resultsTime.value = queryResult.elapsed_ms;
   } catch (e) {
     console.warn(e);
     queryError.value = (e.error ?? e).toString();
@@ -125,17 +123,17 @@ function keyup(e) {
  * Keyboard Shortcuts
  */
 
-register('CommandOrControl+J', () => {
-  elDatabaseSelector.value?.focus();
-});
-register('CommandOrControl+K', () => {
-  elTableFilter.value?.focus();
-});
-register('Escape', () => {
-  dialogText.value = null;
-});
+// register('CommandOrControl+J', () => {
+//   elDatabaseSelector.value?.focus();
+// });
+// register('CommandOrControl+K', () => {
+//   elTableFilter.value?.focus();
+// });
+// register('Escape', () => {
+//   dialogText.value = null;
+// });
 
-onUnmounted(() => unregisterAll()); // remove all shortcuts
+// onUnmounted(() => unregisterAll()); // remove all shortcuts
 
 /**
  * Page Initialization
@@ -191,18 +189,21 @@ loadTables();
       <div id="view--results">
         <QueryWait :show="isQuerying" />
 
-        <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
+        <template v-if="!isQuerying">
+          <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
+          <v-alert v-else-if="noResultsFound" class="ma-5" v-bind="{ color }" text="No Results" variant="outlined" />
 
-        <table v-if="queryResult && !isQuerying">
-          <thead>
-            <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in queryResult.rows">
-              <td class="result-cell" v-for="field in queryResult.fields" v-text="row[field]" @click="dialogText = row[field]" />
-            </tr>
-          </tbody>
-        </table>
+          <table v-else-if="queryResult">
+            <thead>
+              <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in queryResult.rows">
+                <td class="result-cell" v-for="field in queryResult.fields" v-text="row[field]" @click="dialogText = row[field]" />
+              </tr>
+            </tbody>
+          </table>
+        </template>
       </div>
 
       <div id="view--stats" class="d-flex align-center">

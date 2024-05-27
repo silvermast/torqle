@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { hideSnack, makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
 import Password from '~/components/Password.vue';
 import FavoritesList from '~/components/FavoritesList.vue';
-import { open } from '@tauri-apps/api/dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 
 import useFavoritesStore from '~/store/main.js';
 
@@ -40,7 +40,7 @@ const lastError = ref();
 watch(connection, () => lastError.value = null);
 
 function handleError(e) {
-  console.error(e);
+  console.error('handleError', e);
   lastError.value = String(e.error ?? e);
 }
 
@@ -67,6 +67,7 @@ async function connect() {
     await connector.connect();
     emit('connect', connector);
   } catch (e) {
+    console.log('caught connect error', e);
     handleError(e);
   }
   isConnecting.value = false;
@@ -74,7 +75,8 @@ async function connect() {
 
 async function openSshKeyDialog() {
   isOpeningFile.value = true;
-  connection.value.sshOpts.keyfile = await open();
+  const fileHandle = await open();
+  connection.value.sshOpts.keyfile = fileHandle.path;
   isOpeningFile.value = false;
 }
 

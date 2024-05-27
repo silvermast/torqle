@@ -28,7 +28,7 @@ impl AppError {
 
 #[derive(Default)]
 pub struct AppState {
-    adapters: Arc<Mutex<HashMap<String, AdapterEnum>>>
+    adapters: Mutex<HashMap<String, AdapterEnum>>
 }
 impl AppState {
     /**
@@ -36,17 +36,19 @@ impl AppState {
      * @see https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html
      * @see https://doc.rust-lang.org/book/ch15-02-deref.html
      */
-    pub fn get_adapter<'a>(&self, window: &Window) -> Result<AdapterEnum, AppError> {
+    pub fn get_adapter(&self, window: &Window) -> Result<AdapterEnum, AppError> {
         let uuid: String = window.label().into();
         let map_mutex = self.adapters.try_lock().map_err(AppError::from)?;
-        let adapter = map_mutex.get(&uuid).ok_or(AppError::from("No connection bound to the window!"))?.clone();
-        Ok(adapter.clone())
+        match map_mutex.get(&uuid) {
+            Some(adapter) => Ok(adapter.clone()),
+            None => Err(AppError::from("Unable to get_adapter. No connection bound to the window!"))
+        }
     }
-    pub fn set_adapter<'a>(&self, window: &Window, adapter: AdapterEnum) -> Result<bool, AppError> {
+    pub fn set_adapter(&self, window: &Window, adapter: AdapterEnum) -> Result<bool, AppError> {
         self.adapters
             .try_lock()
             .map_err(AppError::from)?
-            .insert(window.label().to_string(), adapter);
+            .insert(window.label().to_string(), adapter.clone());
         Ok(true)
     }
     pub fn remove_adapter(&self, window: &Window) -> Result<AdapterEnum, AppError> {
@@ -55,7 +57,7 @@ impl AppState {
             .try_lock()
             .map_err(AppError::from)?
             .remove(&uuid)
-            .ok_or(AppError::from("No connection bound to the window!"))
+            .ok_or(AppError::from("Unable to remove_adapter. No connection bound to the window!"))
     }
 }
 
@@ -87,7 +89,7 @@ async fn adapter_disconnect(
     state: State<'_, AppState>,
 ) -> Result<bool, AppError> {
     let mut adapter: AdapterEnum = state.remove_adapter(&window)?;
-    adapter.disconnect().await;
+    adapter.disconnect().await?;
     Ok(true)
 }
 
@@ -97,7 +99,7 @@ async fn adapter_test(
     ssh_opts: Option<SshOpts>,
 ) -> Result<String, AppError> {
     let mut adapter = connect_adapter(driver_opts, ssh_opts).await?;
-    adapter.disconnect().await;
+    adapter.disconnect().await?;
 
     Ok("The connection test was a success!".to_string())
 }

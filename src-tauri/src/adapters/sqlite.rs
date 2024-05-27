@@ -39,6 +39,7 @@ impl Adapter for SQLiteAdapter {
         query: String,
         database: Option<String>,
     ) -> Result<QueryResult, AppError> {
+        print!("Running query in db {:?} {}", database, query);
         let start_time = std::time::SystemTime::now();
         let results = vec![];
         let fields = vec![];

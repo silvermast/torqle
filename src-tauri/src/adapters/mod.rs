@@ -81,7 +81,6 @@ impl Adapter for AdapterEnum {
         query: String,
         database: Option<String>,
     ) -> Result<QueryResult, AppError> {
-        let error = AppError::from("Unable to run query. Adapter not found.");
         match self {
             AdapterEnum::MySQL(adapter) => adapter.query(query, database).await,
             AdapterEnum::SQLite(adapter) => adapter.query(query, database).await,
@@ -90,7 +89,6 @@ impl Adapter for AdapterEnum {
     }
 
     async fn disconnect(&mut self) -> Result<bool, AppError> {
-        let error = AppError::from("Unable to disconnect. Adapter not found.");
         match self {
             AdapterEnum::MySQL(adapter) => adapter.disconnect().await,
             AdapterEnum::SQLite(adapter) => adapter.disconnect().await,
