@@ -2,12 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use rand::{thread_rng, Rng};
 use serde::Serialize;
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use uuid::Uuid;
+use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
 
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
-use tauri::{menu::{PredefinedMenuItem, Submenu}, State, Window};
-use tauri::menu::{Menu, MenuItem};
+use tauri::{menu::{Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu}, State, Window};
 
 mod adapters;
 mod ssh;
@@ -138,53 +138,6 @@ fn generate_aes_256_key() -> String {
     hex::encode(key)
 }
 
-/** @todo build out menus more appropriately, and track windows */
-// fn build_menu(handle: &AppHandle) -> Menu {
-    // // here `"quit".to_string()` defines the menu item id, and the second parameter is the menu item label.
-    // let new_window =
-    //     MenuItemBuilder::new("new_window".to_string(), "New Window").accelerator("cmdOrCtrl+N");
-    // let close_window =
-    //     MenuItemBuilder::new("close_window".to_string(), "Close Window").accelerator("cmdOrCtrl+W");
-    // let quit = MenuItemBuilder::new("quit".to_string(), "Quit").accelerator("cmdOrCtrl+Q");
-
-    // let menu = Menu::new();
-
-    // let file_menu = Submenu::new(
-    //     "File",
-    //     Menu::new()
-    //         .add_item(new_window)
-    //         .add_item(close_window)
-    //         .add_item(quit),
-    // );
-
-    // let edit_menu = Submenu::new(
-    //     "Edit",
-    //     Menu::new()
-    //         .add_native_item(MenuItem::Undo)
-    //         .add_native_item(MenuItem::Redo)
-    //         .add_native_item(MenuItem::Separator)
-    //         .add_native_item(MenuItem::Cut)
-    //         .add_native_item(MenuItem::Copy)
-    //         .add_native_item(MenuItem::Paste)
-    //         .add_native_item(MenuItem::SelectAll),
-    // );
-
-    // menu.add_submenu(file_menu).add_submenu(edit_menu)
-
-    // let menu = Menu::new();
-    // menu.add_submenu(Submenu::new("File", file_menu));
-
-    // use default OS menu as a base
-    // let mut menu: Menu = tauri::Menu::os_default(app_name);
-    // menu.
-    // for sub_menu in menu.items.iter() {
-    //     if sub_menu.title == "File" {
-    //         std::mem::replace(sub_menu, file_menu);
-    //     }
-    // }
-// }
-
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
@@ -199,44 +152,38 @@ fn main() {
                 "File",
                 true,
                 &[
-                  &PredefinedMenuItem::close_window(handle, None)?,
-                  #[cfg(target_os = "macos")]
-                  &MenuItem::new(handle, "Hello", true, None::<&str>)?,
+                    &MenuItem::with_id(handle, "new_window", "New Window", true, None::<&str>)?,
+                    &PredefinedMenuItem::close_window(handle, None)?,
+                    &PredefinedMenuItem::quit(handle, None)?
                 ],
-              )?
+            )?,
+            &Submenu::with_items(
+                handle,
+                "Edit",
+                true,
+                &[
+                    &PredefinedMenuItem::undo(handle, None)?,
+                    &PredefinedMenuItem::redo(handle, None)?,
+                    &PredefinedMenuItem::copy(handle, None)?,
+                    &PredefinedMenuItem::paste(handle, None)?,
+                    &PredefinedMenuItem::cut(handle, None)?,
+                    &PredefinedMenuItem::select_all(handle, None)?,
+                ],
+            )?,
+            &Submenu::with_items(
+                handle,
+                "Window",
+                true,
+                &[
+                    &PredefinedMenuItem::maximize(handle, None)?,
+                    &PredefinedMenuItem::minimize(handle, None)?,
+                    &PredefinedMenuItem::fullscreen(handle, None)?,
+                    &PredefinedMenuItem::hide(handle, None)?,
+                    &PredefinedMenuItem::hide_others(handle, None)?,
+                    &PredefinedMenuItem::show_all(handle, None)?,
+                ],
+            )?
         ]))
-        .setup(|app| {
-            // let local_data_dir = app.path_resolver().app_local_data_dir().unwrap();
-            // if !local_data_dir.exists() {
-            //     std::fs::create_dir_all(&local_data_dir)?;
-            // }
-
-            // app.on_menu_event(|event| match event.menu_item_id() {
-            //     "new_window" => {
-            //         let window: Window = tauri::WindowBuilder::new(
-            //             event.window(),
-            //             Uuid::new_v4().to_string(),
-            //             tauri::WindowUrl::App("index.html".into()),
-            //         )
-            //         .build()
-            //         .unwrap();
-            //         window
-            //             .set_title("New Connection".into())
-            //             .expect("Failed to set window title");
-    
-            //         window.manage(AppState::default());
-            //     }
-            //     "close_window" => {
-            //         event.window().close().unwrap();
-            //     }
-            //     "quit" => {
-            //         std::process::exit(0);
-            //     }
-            //     _ => {}
-            // });
-
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             adapter_connect,
             adapter_disconnect,

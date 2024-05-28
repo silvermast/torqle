@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Password from '~/components/Password.vue';
+import Password from '~/components/fields/Password.vue';
 
 const emit = defineEmits(['update:modelValue']);
 const props = defineProps({

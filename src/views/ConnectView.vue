@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { hideSnack, makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
-import Password from '~/components/Password.vue';
+import Password from '~/components/fields/Password.vue';
 import FavoritesList from '~/components/FavoritesList.vue';
+import ColorPicker from '~/components/fields/ColorPicker.vue';
 import { open } from '@tauri-apps/plugin-dialog';
 
 import useFavoritesStore from '~/store/main.js';
@@ -95,7 +96,7 @@ async function openSshKeyDialog() {
               <template v-slot:activator="{ props }">
                 <v-btn :color="connection.color" v-bind="props" rounded>Color</v-btn>
               </template>
-              <v-color-picker show-swatches hide-inputs hide-sliders hide-canvas v-model="connection.color" />
+              <color-picker v-model="connection.color" />
             </v-menu>
           </v-col>
           <v-col cols="6">
@@ -108,31 +109,32 @@ async function openSshKeyDialog() {
           </v-col>
         </v-row>
         <template v-if="connection.driverName !== 'Sqlite'">
-        <v-switch density="compact" v-model="connection.useSsh" label="SSH Tunnel"></v-switch>
-        <div v-if="connection.useSsh">
-          <v-row>
-            <v-col cols="8">
-              <v-text-field label="SSH Host" density="compact" v-model="connection.sshOpts.host" variant="outlined" />
-            </v-col>
-            <v-col cols="4">
-              <v-text-field label="Port" density="compact" v-model="connection.sshOpts.port" variant="outlined"
-                type="number" />
-            </v-col>
-          </v-row>
-          <v-text-field label="SSH User" density="compact" v-model="connection.sshOpts.user" variant="outlined" />
-          <v-row>
-            <v-col cols="6">
-              <Password label="SSH Password" density="compact" v-model="connection.sshOpts.password" variant="outlined" />
-            </v-col>
-            <v-col cols="6" class="pl-3">
-              <v-btn prepend-icon="mdi-shield-key" @click="openSshKeyDialog" :disabled="isOpeningFile" variant="outlined"
-                color="grey">
-                Select SSH Key
-              </v-btn>
-              <div><small v-if="connection.sshOpts.keyfile" v-text="connection.sshOpts.keyfile" /></div>
-            </v-col>
-          </v-row>
-        </div>
+          <v-switch density="compact" v-model="connection.useSsh" label="SSH Tunnel"></v-switch>
+          <div v-if="connection.useSsh">
+            <v-row>
+              <v-col cols="8">
+                <v-text-field label="SSH Host" density="compact" v-model="connection.sshOpts.host" variant="outlined" />
+              </v-col>
+              <v-col cols="4">
+                <v-text-field label="Port" density="compact" v-model="connection.sshOpts.port" variant="outlined"
+                  type="number" />
+              </v-col>
+            </v-row>
+            <v-text-field label="SSH User" density="compact" v-model="connection.sshOpts.user" variant="outlined" />
+            <v-row>
+              <v-col cols="6">
+                <Password label="SSH Password" density="compact" v-model="connection.sshOpts.password"
+                  variant="outlined" />
+              </v-col>
+              <v-col cols="6" class="pl-3">
+                <v-btn prepend-icon="mdi-shield-key" @click="openSshKeyDialog" :disabled="isOpeningFile"
+                  variant="outlined" color="grey">
+                  Select SSH Key
+                </v-btn>
+                <div><small v-if="connection.sshOpts.keyfile" v-text="connection.sshOpts.keyfile" /></div>
+              </v-col>
+            </v-row>
+          </div>
         </template>
 
         <v-divider class="mb-5" />
@@ -140,7 +142,7 @@ async function openSshKeyDialog() {
         <component v-if="driver" :is="driver.fieldset" v-model="connection.driverOpts" />
 
         <v-alert class="mt-5" v-if="lastError" :text="lastError" type="error" />
-        
+
         <v-divider class="my-5" />
         <v-card-actions class="d-flex">
           <v-btn class="mr-auto" rounded @click="store.saveFavorite(connection)" variant="outlined">Save</v-btn>

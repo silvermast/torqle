@@ -3,14 +3,16 @@ TO DO List
 
 ## Rust
 
+- Add Menus back
 - implement multiple windows
-
-- connect to mysql
-- run mysql query
-- add SSH tunnel
+- add MongoDB
+- add Postgres
+- Auto Updater
 
 ## Vue
 
-- resolve vuetify v-select issue
-- fix vertical scroll fragments
+- reconnect button
+- database selector hotkey
 - ACE Editor Sessions (save & restore)
+- Editor Tabs
+- Saved queries
