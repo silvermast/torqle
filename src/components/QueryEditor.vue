@@ -8,8 +8,9 @@ import aceModeMysqlUrl from 'ace-builds/src-noconflict/mode-mysql?url';
 import aceModePostgresUrl from 'ace-builds/src-noconflict/mode-pgsql?url';
 import aceModeSqlServerUrl from 'ace-builds/src-noconflict/mode-sqlserver?url';
 import aceModeJavascriptUrl from 'ace-builds/src-noconflict/mode-javascript?url';
+import shortcuts from '../services/KeyboardShortcuts.js';
 
-const delimiter = ';';
+const delimiter = ';'; // @todo: convert to prop?
 
 const modes = {
   mysql: { path: 'ace/mode/mysql', module: aceModeMysqlUrl },
@@ -43,28 +44,46 @@ const elEditor = ref();
 
 let selectedQueryMarkerId = null;
 
+/**
+ * @todo optimize this...
+ * - do NOT debounce
+ * - separate text highlight from query.value mutation?
+ */
 function moveCursor() {
-  // remove any background highlighting for the selected query
-  aceEditor.session.removeMarker(selectedQueryMarkerId);
-  
-  // If there's a manual selection, return that, verbatim.
-  if (aceEditor?.getSelectedText()) {
-    query.value = aceEditor?.getSelectedText();
-    return;
-  }
+    // remove any background highlighting for the selected query
+    aceEditor.session.removeMarker(selectedQueryMarkerId);
+    
+    // If there's a manual selection, return that, verbatim.
+    if (aceEditor?.getSelectedText()) {
+      query.value = aceEditor?.getSelectedText();
+      return;
+    }
 
-  // If there's no selection, infer the query based on the cursor position and specified delimiter
-  const lines = aceEditor.session.selection.cursor.document.getAllLines();
-  const { column, row } = aceEditor.session.selection.cursor;
+    // If there's no selection, infer the query based on the cursor position and specified delimiter
+    const lines = aceEditor.session.selection.cursor.document.getAllLines();
+    const { column, row } = aceEditor.session.selection.cursor;
 
-  const start = findDelimiterBefore({ lines, column, row });
-  const end = findDelimiterAfter({ lines, column, row });
-  const range = new Range(start.row, start.column, end.row, end.column);
-  
-  aceEditor.session.removeMarker(selectedQueryMarkerId);
-  selectedQueryMarkerId = aceEditor.session.addMarker(range, 'ace_active-line', 'text');
-  
-  query.value = aceEditor.session.doc.getTextRange(range);
+    // run these async, but don't define the methods as async
+    let start = findDelimiterBefore({ lines, column, row });
+    let end = findDelimiterAfter({ lines, column, row });
+    let range = new Range(start.row, start.column, end.row, end.column);
+
+    /**
+     * @todo: select previous query when cursor is positioned immediately after
+     * @example SELECT foo FROM bar;|
+     */
+    //
+    // let queryText = aceEditor.session.doc.getTextRange(range);
+    // if (!queryText.trim().length) {
+    //   end = { ...start };
+    //   start = findDelimiterBefore({ lines, ...start });
+    //   queryText = aceEditor.session.doc.getTextRange(range);
+    // }
+    
+    aceEditor.session.removeMarker(selectedQueryMarkerId);
+    selectedQueryMarkerId = aceEditor.session.addMarker(range, 'ace_active-line', 'text');
+    
+    query.value = aceEditor.session.doc.getTextRange(range);
 }
 
 function findDelimiterBefore({ lines, column, row }) {
@@ -140,6 +159,7 @@ onMounted(() => {
   ;
   `);
 
+  // custom cursor logic happens here. Be careful about adding too many listeners!
   aceEditor.session.selection.on('changeCursor', () => moveCursor());
 
   /**
@@ -150,11 +170,26 @@ onMounted(() => {
 
   aceEditor.commands.addCommand({
     name: 'runQuery',
-    bindKey: {win: 'Ctrl-Enter',  mac: 'Command-Enter'},
+    bindKey: shortcuts.editor.runQuery.forAce(),
     exec: function(editor) {
         emit('runSelected', query.value);
     },
     readOnly: true,
+  });
+
+  aceEditor.commands.addCommand({
+    ...aceEditor.commands.byName.selectMoreAfter,
+    bindKey: shortcuts.editor.addCursorAtNextItem.forAce(),
+  });
+
+  aceEditor.commands.addCommand({
+    ...aceEditor.commands.byName.selectMoreBefore,
+    bindKey: shortcuts.editor.addCursorAtPrevItem.forAce(),
+  });
+
+  aceEditor.commands.addCommand({
+    ...aceEditor.commands.byName.toggleSplitSelectionIntoLines,
+    bindKey: shortcuts.editor.addCursorsAtSelectedLines.forAce(),
   });
 
 });

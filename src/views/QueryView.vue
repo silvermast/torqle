@@ -1,12 +1,12 @@
 <script setup>
-// import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, handleError } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryEditor from '~/components/QueryEditor.vue';
 import QueryWait from '~/components/QueryWait.vue';
 import IconButton from '~/components/IconButton.vue';
 import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/services/Connector.js';
+import shortcuts from '~/services/KeyboardShortcuts.js';
 
 const emit = defineEmits(['disconnect']);
 
@@ -30,6 +30,7 @@ const queryText = ref('-- Run a query!');
 const queryResult = ref();
 const isQuerying = ref(false);
 const queryError = ref();
+const isReconnecting = ref(false);
 
 const dialogText = ref();
 const showDialog = computed(() => !!dialogText.value);
@@ -107,33 +108,31 @@ function debug($event) {
   console.log($event);
 }
 
-function keyup(e) {
-  console.log(e);
-  const cmdKey = /Mac/.test(window.navigator.userAgent) ? 'metaKey' : 'ctrlKey'
-  if (e.code === 'KeyJ' && e[cmdKey]) {
-    elDatabaseSelector.value.focus();
-  } else if (e.code === 'keyK' && e[cmdKey]) {
-    elTableFilter.value.focus();
-  } else if (e.code === 'Escape') {
-    dialogText.value = null;
+async function reconnect() {
+  isReconnecting.value = true;
+  try {
+    await connector.reconnect();
+  } catch (e) {
+    handleError(e);
+    emit('disconnect');
+    isReconnecting.value = false;
   }
+  isReconnecting.value = false;
 }
 
 /**
  * Keyboard Shortcuts
  */
 
-// register('CommandOrControl+J', () => {
-//   elDatabaseSelector.value?.focus();
-// });
-// register('CommandOrControl+K', () => {
-//   elTableFilter.value?.focus();
-// });
-// register('Escape', () => {
-//   dialogText.value = null;
-// });
-
-// onUnmounted(() => unregisterAll()); // remove all shortcuts
+shortcuts.register(shortcuts.global.selectDatabase.forTauri(), () => {
+  elDatabaseSelector.value?.focus();
+});
+shortcuts.register(shortcuts.global.filterTables.forTauri(), () => {
+  elTableFilter.value?.focus();
+});
+shortcuts.register('Escape', () => {
+  dialogText.value = null;
+});
 
 /**
  * Page Initialization
@@ -146,12 +145,16 @@ loadTables();
 
 <template>
   <main>
+    <v-overlay :model-value="isReconnecting" class="align-center justify-center">
+      <v-progress-circular v-bind="{ color }" size="64" indeterminate />
+    </v-overlay>
+    
     <nav id="vertical-nav" class="d-flex flex-column align-center" :style="{ background: color }">
       <IconButton @click="debug" class="mt-2" icon="mdi-table" title="Table List" />
       
       <!-- Bottom actions -->
       <div class="d-flex flex-column mt-auto mb-1 align-center">
-        <IconButton @click="debug" class="mb-2" title="Reconnect" icon="mdi-cached" />
+        <IconButton @click="reconnect" class="mb-2" title="Reconnect" icon="mdi-cached" />
         <IconButton @click="disconnect" class="mb-2 icon-flip-h" title="Disconnect" icon="mdi-logout" />
       </div>
     </nav>
@@ -183,13 +186,13 @@ loadTables();
 
       <div id="view--actions" class="d-flex flex-row align-center">
         <v-btn v-bind="{ color }" size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="runQuery"
-          :disabled="isQuerying">Run Query</v-btn>
+          :disabled="isQuerying || !queryText">Run Query</v-btn>
       </div>
 
       <div id="view--results">
-        <QueryWait :show="isQuerying" />
+        <QueryWait v-if="isQuerying" />
 
-        <template v-if="!isQuerying">
+        <template v-else>
           <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
           <v-alert v-else-if="noResultsFound" class="ma-5" v-bind="{ color }" text="No Results" variant="outlined" />
 

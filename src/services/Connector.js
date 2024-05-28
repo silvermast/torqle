@@ -46,14 +46,7 @@ class Connector {
      * Tells the rust-end to create a connection. Internally, this is bound to the window.
      */
     async connect() {
-        try {
-            const rsp = await invoke('adapter_connect', this.connectOpts);
-            console.log('connect rsp', rsp);
-            return rsp;
-        } catch (e) {
-            console.error('Caught connect error', 3);
-            throw e;
-        }
+        return await invoke('adapter_connect', this.connectOpts);
     }
 
     /**
@@ -61,6 +54,18 @@ class Connector {
      */
     async disconnect() {
         return await invoke('adapter_disconnect');
+    }
+
+    /**
+     * Attempts to reconnect
+     */
+    async reconnect() {
+        try {
+            await this.disconnect();
+        } catch (e) {
+            console.warn(e);
+        }
+        await this.connect();
     }
 
     /**
