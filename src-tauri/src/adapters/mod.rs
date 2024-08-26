@@ -1,6 +1,7 @@
 use ssh_jumper::model::SshForwarderEnd;
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::time::SystemTime;
 use tokio::sync::oneshot::Receiver;
 
 use serde::Serialize;
@@ -59,6 +60,26 @@ pub struct QueryResult {
     // fields: Vec<String>,
     pub fields: Vec<String>,
     pub rows: Vec<HashMap<String, JsonValue>>,
+}
+impl QueryResult {
+    pub fn make(start_time: SystemTime, rows: Vec<HashMap<String, JsonValue>>) -> QueryResult {
+        let fields: Vec<String> = if !rows.is_empty() {
+            Vec::from_iter(rows[0].clone().into_keys().into_iter())
+        } else {
+            Vec::new()
+        };
+
+        QueryResult {
+            elapsed_ms: start_time
+                .elapsed()
+                .expect("Error parsing elapsed timestamp!")
+                .as_millis()
+                .to_string(),
+            num_rows: rows.len().to_string(),
+            rows: rows,
+            fields: fields.into(),
+        }
+    }
 }
 
 #[derive(Clone)]

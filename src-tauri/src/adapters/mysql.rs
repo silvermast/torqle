@@ -52,32 +52,12 @@ impl Adapter for MySQLAdapter {
         println!("Retrieved {} results", query_results.len());
         let mut results: Vec<HashMap<String, JsonValue>> = Vec::new();
 
-        let fields: Vec<String> = if query_results.is_empty() {
-            Vec::new()
-        } else {
-            Vec::from_iter(
-                query_results[0]
-                    .columns()
-                    .iter()
-                    .map(|c| c.name_str().to_string()),
-            )
-        };
-
         for row in query_results {
             let row_map = parse_row(row)?;
             results.push(row_map);
         }
 
-        Ok(QueryResult {
-            elapsed_ms: start_time
-                .elapsed()
-                .expect("Error parsing elapsed timestamp!")
-                .as_millis()
-                .to_string(),
-            num_rows: results.len().to_string(),
-            rows: Vec::from_iter(results),
-            fields: fields,
-        })
+        Ok(QueryResult::make(start_time, Vec::from_iter(results)))
     }
 
     async fn disconnect(&mut self) -> Result<bool, AppError> {

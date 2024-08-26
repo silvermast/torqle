@@ -1,4 +1,5 @@
 // src/styles/variables.sass
+
 // $font-size-root: 12px;
 // $field-font-size: 12px !important;
 // $input-font-size: 12px !important;
@@ -9,3 +10,10 @@
 // $border-radius-root: .25rem;
 
 @import 'vuetify/styles';
+
+// :root {
+//     --v-field-padding-start: 1rem;
+//     --v-field-padding-end: 1rem;
+//     --v-field-padding-top: 0.5rem;
+//     --v-field-padding-bottom: 0.5rem;
+// }

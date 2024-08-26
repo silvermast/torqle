@@ -63,7 +63,29 @@ function moveCursor() {
     const lines = aceEditor.session.selection.cursor.document.getAllLines();
     const { column, row } = aceEditor.session.selection.cursor;
 
-    // run these async, but don't define the methods as async
+    // const rangeAfterCursor = aceEditor.find(`(${delimiter}|$)`, {
+    //   backwards: false,
+    //   wrap: false,
+    //   start: { column, row },
+    //   preventScroll: true,
+    //   regExp: true,
+    // });
+
+    // const rangeBeforeCursor = aceEditor.find(`(^|${delimiter})`, {
+    //   backwards: true,
+    //   wrap: false,
+    //   start: { column, row },
+    //   preventScroll: true,
+    //   regExp: true,
+    // });
+
+    // let range = new Range(
+    //   rangeBeforeCursor.start.row,
+    //   rangeBeforeCursor.start.column,
+    //   rangeAfterCursor.start.row,
+    //   rangeAfterCursor.start.column
+    // );
+
     let start = findDelimiterBefore({ lines, column, row });
     let end = findDelimiterAfter({ lines, column, row });
     let range = new Range(start.row, start.column, end.row, end.column);
@@ -131,6 +153,7 @@ function findDelimiterAfter({ lines, column, row }) {
   }
 }
 
+// todo: move this to service
 const isDark = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
 onMounted(() => {
@@ -191,6 +214,31 @@ onMounted(() => {
     ...aceEditor.commands.byName.toggleSplitSelectionIntoLines,
     bindKey: shortcuts.editor.addCursorsAtSelectedLines.forAce(),
   });
+
+  // Disable these commands
+  aceEditor.commands.removeCommands([
+    'togglerecording',                //  Toggle recording   { win: "Ctrl-Alt-E", mac: "Command-Option-E" }
+    'replaymacro',                    //  Replay macro   { win: "Ctrl-Shift-E", mac: "Command-Shift-E" }
+    'jumptomatching',                 //  Jump to matching   { win: "Ctrl-\\|Ctrl-P", mac: "Command-\\" }
+    'selecttomatching',               //  Select to matching   { win: "Ctrl-Shift-\\|Ctrl-Shift-P", mac: "Command-Shift-\\" }
+    'expandToMatching',               //  Expand to matching   { win: "Ctrl-Shift-M", mac: "Ctrl-Shift-M" }
+    'removeline',                     //  Remove line   { win: "Ctrl-D", mac: "Command-D" }
+    'duplicateSelection',             //  Duplicate selection   { win: "Ctrl-Shift-D", mac: "Command-Shift-D" }
+    'sortlines',                      //  Sort lines   { win: "Ctrl-Alt-S", mac: "Command-Alt-S" }
+    'togglecomment',                  //  Toggle comment   { win: "Ctrl-/", mac: "Command-/" }
+    'toggleBlockComment',             //  Toggle block comment   { win: "Ctrl-Shift-/", mac: "Command-Shift-/" }
+    'modifyNumberUp',                 //  Modify number up   { win: "Ctrl-Shift-Up", mac: "Alt-Shift-Up" }
+    'modifyNumberDown',               //  Modify number down   { win: "Ctrl-Shift-Down", mac: "Alt-Shift-Down" }
+    'splitline',                      //  Split line   { win: null, mac: "Ctrl-O" }
+    'transposeletters',               //  Transpose letters   { win: "Alt-Shift-X", mac: "Ctrl-T" }
+    'autoindent',                     //  Auto Indent   { win: null, mac: null }
+    'openlink',                       //  undefined   { win: "Ctrl+F3", mac: "F3" }
+    'joinlines',                      //  Join lines   { win: null, mac: null }
+    'invertSelection',                //  Invert selection   { win: null, mac: null }
+    'openCommandPalette',             //  Open command palette   { win: "F1", mac: "F1" }
+    'modeSelect',                     //  Change language mode...   { win: null, mac: null }
+    'toggleSplitSelectionIntoLines',  //  Split selection into lines   { win: "Alt-Shift-I", mac: "Alt-Shift-I" }
+  ]);
 
 });
 </script>

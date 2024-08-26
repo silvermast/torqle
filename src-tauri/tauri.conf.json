@@ -2,7 +2,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../public",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
   "bundle": {

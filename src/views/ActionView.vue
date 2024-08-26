@@ -15,7 +15,8 @@ const props = defineProps({
   editorLang: { type: String, default: 'sql' },
 });
 
-const color = computed(() => props.connector?.opts?.color ?? 'rgba(var(--v-theme-primary))');
+const color = computed(() => props.connector?.opts?.color);
+document.documentElement.style.setProperty('--connection-color', `${color.value}60`);
 
 /**
  * @type {Connector}
@@ -196,9 +197,14 @@ loadTables();
           <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
           <v-alert v-else-if="noResultsFound" class="ma-5" v-bind="{ color }" text="No Results" variant="outlined" />
 
-          <table v-else-if="queryResult">
+          <table class="query-result" v-else-if="queryResult">
             <thead>
-              <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
+              <tr>
+                <th v-for="field in queryResult.fields" width="150">
+                  {{ field }}
+                  <!-- <ResizeHandle :color="color" :thickness="1" vertical style="float:right" /> -->
+                </th>
+              </tr>
             </thead>
             <tbody>
               <tr v-for="row in queryResult.rows">

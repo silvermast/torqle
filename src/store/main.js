@@ -6,6 +6,8 @@ import { makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
 
 export default defineStore('favorites', () => {
 
+    const defaultColor = '#2196f3'; // vuetify primary
+
     const selection = ref({});
     const favorites = ref([]);
 
@@ -13,7 +15,7 @@ export default defineStore('favorites', () => {
         selection.value = {
             id: null,
             title: '',
-            color: 'primary', // update!
+            color: defaultColor,
             canSsh: true,
             useSsh: false,
             sshOpts: {
