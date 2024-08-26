@@ -1,12 +1,12 @@
 <script setup>
-import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, handleError } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryEditor from '~/components/QueryEditor.vue';
 import QueryWait from '~/components/QueryWait.vue';
 import IconButton from '~/components/IconButton.vue';
 import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/services/Connector.js';
+import shortcuts from '~/services/KeyboardShortcuts.js';
 
 const emit = defineEmits(['disconnect']);
 
@@ -15,7 +15,8 @@ const props = defineProps({
   editorLang: { type: String, default: 'sql' },
 });
 
-const color = computed(() => props.connector?.opts?.color ?? 'rgba(var(--v-theme-primary))');
+const color = computed(() => props.connector?.opts?.color);
+document.documentElement.style.setProperty('--connection-color', `${color.value}60`);
 
 /**
  * @type {Connector}
@@ -30,12 +31,14 @@ const queryText = ref('-- Run a query!');
 const queryResult = ref();
 const isQuerying = ref(false);
 const queryError = ref();
+const isReconnecting = ref(false);
 
 const dialogText = ref();
 const showDialog = computed(() => !!dialogText.value);
 
 const showResultsCount = computed(() => queryResult.value?.num_rows !== undefined);
 const showResultsTime = computed(() => queryResult.value?.elapsed_ms !== undefined);
+const noResultsFound = computed(() => String(queryResult.value?.num_rows) === '0');
 
 watch(selectedDatabase, async (newValue) => {
   await connector.setDatabase(newValue);
@@ -74,9 +77,6 @@ async function runQuery() {
   try {
     queryResult.value = await connector.query(queryText.value, selectedDatabase.value);
     console.log(queryResult.value);
-    // results.value = queryResult.rows;
-    // resultsCount.value = queryResult.num_rows;
-    // resultsTime.value = queryResult.elapsed_ms;
   } catch (e) {
     console.warn(e);
     queryError.value = (e.error ?? e).toString();
@@ -109,33 +109,31 @@ function debug($event) {
   console.log($event);
 }
 
-function keyup(e) {
-  console.log(e);
-  const cmdKey = /Mac/.test(window.navigator.userAgent) ? 'metaKey' : 'ctrlKey'
-  if (e.code === 'KeyJ' && e[cmdKey]) {
-    elDatabaseSelector.value.focus();
-  } else if (e.code === 'keyK' && e[cmdKey]) {
-    elTableFilter.value.focus();
-  } else if (e.code === 'Escape') {
-    dialogText.value = null;
+async function reconnect() {
+  isReconnecting.value = true;
+  try {
+    await connector.reconnect();
+  } catch (e) {
+    handleError(e);
+    emit('disconnect');
+    isReconnecting.value = false;
   }
+  isReconnecting.value = false;
 }
 
 /**
  * Keyboard Shortcuts
  */
 
-register('CommandOrControl+J', () => {
+shortcuts.register(shortcuts.global.selectDatabase.forTauri(), () => {
   elDatabaseSelector.value?.focus();
 });
-register('CommandOrControl+K', () => {
+shortcuts.register(shortcuts.global.filterTables.forTauri(), () => {
   elTableFilter.value?.focus();
 });
-register('Escape', () => {
+shortcuts.register('Escape', () => {
   dialogText.value = null;
 });
-
-onUnmounted(() => unregisterAll()); // remove all shortcuts
 
 /**
  * Page Initialization
@@ -148,12 +146,16 @@ loadTables();
 
 <template>
   <main>
+    <v-overlay :model-value="isReconnecting" class="align-center justify-center">
+      <v-progress-circular v-bind="{ color }" size="64" indeterminate />
+    </v-overlay>
+    
     <nav id="vertical-nav" class="d-flex flex-column align-center" :style="{ background: color }">
       <IconButton @click="debug" class="mt-2" icon="mdi-table" title="Table List" />
       
       <!-- Bottom actions -->
       <div class="d-flex flex-column mt-auto mb-1 align-center">
-        <IconButton @click="debug" class="mb-2" title="Reconnect" icon="mdi-cached" />
+        <IconButton @click="reconnect" class="mb-2" title="Reconnect" icon="mdi-cached" />
         <IconButton @click="disconnect" class="mb-2 icon-flip-h" title="Disconnect" icon="mdi-logout" />
       </div>
     </nav>
@@ -185,24 +187,32 @@ loadTables();
 
       <div id="view--actions" class="d-flex flex-row align-center">
         <v-btn v-bind="{ color }" size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="runQuery"
-          :disabled="isQuerying">Run Query</v-btn>
+          :disabled="isQuerying || !queryText">Run Query</v-btn>
       </div>
 
       <div id="view--results">
-        <QueryWait :show="isQuerying" />
+        <QueryWait v-if="isQuerying" />
 
-        <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
+        <template v-else>
+          <v-alert v-if="queryError" :text="queryError" type="error" class="ma-5" />
+          <v-alert v-else-if="noResultsFound" class="ma-5" v-bind="{ color }" text="No Results" variant="outlined" />
 
-        <table v-if="queryResult && !isQuerying">
-          <thead>
-            <tr><th v-for="field in queryResult.fields" v-text="field" width="150" /></tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in queryResult.rows">
-              <td class="result-cell" v-for="field in queryResult.fields" v-text="row[field]" @click="dialogText = row[field]" />
-            </tr>
-          </tbody>
-        </table>
+          <table class="query-result" v-else-if="queryResult">
+            <thead>
+              <tr>
+                <th v-for="field in queryResult.fields" width="150">
+                  {{ field }}
+                  <!-- <ResizeHandle :color="color" :thickness="1" vertical style="float:right" /> -->
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in queryResult.rows">
+                <td class="result-cell" v-for="field in queryResult.fields" v-text="row[field]" @click="dialogText = row[field]" />
+              </tr>
+            </tbody>
+          </table>
+        </template>
       </div>
 
       <div id="view--stats" class="d-flex align-center">

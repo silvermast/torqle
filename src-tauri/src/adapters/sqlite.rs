@@ -1,79 +1,75 @@
-use std::{collections::HashMap, error::Error};
-use mysql::prelude::Queryable;
-use mysql::Row;
+use std::collections::HashMap;
 
-use super::{ClientConnection, QueryResult, QueryError};
+use sqlx::sqlite::{SqlitePool, SqliteRow, SqliteValue};
+use sqlx::{Column, Row, Value};
+pub use serde_json::Value as JsonValue;
 
-#[derive(Clone, Debug)]
-pub struct Sqlite {
-    opts: HashMap<String, String>,
-    pool: mysql::Pool,
+use super::{Adapter, AdapterOpts, QueryResult};
+use crate::AppError;
+
+pub async fn connect(opts: AdapterOpts) -> Result<SQLiteAdapter, AppError>
+where
+    SQLiteAdapter: Sized,
+{
+    let pool = SqlitePool::connect(&opts.filepath.as_str()).await.map_err(AppError::from)?;
+
+    Ok(SQLiteAdapter { pool: pool })
 }
 
-impl ClientConnection for Sqlite {
-    fn connect(opts: HashMap<String, String>) -> Result<Self, Box<dyn Error>> where Self: Sized {
-        let connection_opts = mysql::OptsBuilder::new().from_hash_map(&opts)?;
-        let pool = mysql::Pool::new(connection_opts)?;
-
-        Ok(Mysql { pool: pool, opts: opts })
-    }
-
-    fn test(opts: HashMap<String, String>) -> Result<bool, Box<dyn Error>> where Self: Sized {
-        let connection_opts = mysql::OptsBuilder::new().from_hash_map(&opts)?;
-        let pool = mysql::Pool::new(connection_opts)?;
+#[derive(Clone)]
+pub struct SQLiteAdapter {
+    pool: SqlitePool,
+}
+impl Adapter for SQLiteAdapter {
+    async fn disconnect(&mut self) -> Result<bool, AppError> {
         Ok(true)
     }
 
-    fn change_schema(&mut self, value: String) -> Result<bool, Box<dyn Error>> {
-        self.set_opt("db_name".to_string(), value)
-    }
-
-    fn set_opt(&mut self, option: String, value: String) -> Result<bool, Box<dyn Error>> {
-        self.opts.insert(option, value);
-        Ok(true)
-    }
-
-    fn get_opt(&self, option: String) -> Option<String> {
-        match self.opts.get(&option.to_string()) {
-            Some(value) => Some(value.to_string()),
-            _ => None,
-        }
-    }
-
-    fn query(&self, query: String) -> Result<QueryResult, QueryError> {
-        let mut conn = self.pool.get_conn().map_err(|why| QueryError { error: why.to_string() })?;
-        let mut query_actual: String;
-
-        match self.get_opt("db_name".to_string()) {
-            Some(db_name) => {
-                // run a USE `database` query
-                println!("QUERY: USE {}", db_name);
-                conn.query_drop(format!("USE {}", db_name)).map_err(|err| QueryError { error: err.to_string() })?;
-                true
-            },
-            _ => false,
-        };
-        
+    async fn query(
+        &self,
+        query: String,
+        database: Option<String>,
+    ) -> Result<QueryResult, AppError> {
+        print!("Running query in db {:?} {}", database, query);
         let start_time = std::time::SystemTime::now();
-        println!("QUERY: {}", query);
-        let results = conn.query_map(query, |mut row: Row| {
-            let mut row_map = HashMap::new();
-            let columns = row.columns();
-            for index in 0..columns.len() {
-                let field: String = columns[index].name_str().into();
-                let value: String = row.take(index).unwrap_or("".to_string());
-                row_map.insert(field, value);
-            }
-            row_map
-        }).map_err(|why| QueryError { error: why.to_string() })?;
 
-        Ok(QueryResult {
-            elapsed_ms: start_time.elapsed().expect("Error parsing elapsed timestamp!").as_millis().to_string(),
-            num_rows: results.len().to_string(),
-            rows: results,
-        })
+        let query_results = sqlx::query(&query.as_str())
+            .fetch_all(&self.pool)
+            .await
+            .map_err(AppError::from)?;
+
+        let mut results: Vec<HashMap<String, JsonValue>> = Vec::new();
+
+        for row in query_results {
+            let row_map = parse_row(&row)?;
+            results.push(row_map);
+        }
+
+        Ok(QueryResult::make(start_time, Vec::from_iter(results)))
     }
-    fn disconnect(&mut self) -> bool {
-        true
+}
+
+
+fn parse_row(row: &SqliteRow) -> Result<HashMap<String, JsonValue>, AppError> {
+    let mut map = HashMap::new();
+    let columns = row.columns();
+
+    for column in columns {
+        let column_name = column.name().to_string();
+        // let value: String = row.get(column.ordinal()).unwrap_or("".to_string());
+        let value: JsonValue = row.try_get(column.ordinal()).map_err(AppError::from)?;
+
+        // let value_raw = row.try_get_raw(column.ordinal()).map_err(AppError::from)?;
+        // let value = match value_raw {
+        //     sqlx::types::Type::Null => JsonValue::Null,
+        //     sqlx::types::Type::Integer => JsonValue::Number(row.get::<i64, _>(column.ordinal()).into()),
+        //     sqlx::types::Type::Real => JsonValue::Number(row.get::<f64, _>(column.ordinal()).into()),
+        //     sqlx::types::Type::Text => JsonValue::String(row.get::<String, _>(column.ordinal())),
+        //     sqlx::types::Type::Blob => JsonValue::String(hex::encode(row.get::<Vec<u8>, _>(column.ordinal()))),
+        // };
+
+        map.insert(column_name, value);
     }
+
+    Ok(map)
 }

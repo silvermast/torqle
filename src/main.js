@@ -3,14 +3,16 @@ import './polyfill.mjs';
 import "./styles.scss";
 import { createPinia } from 'pinia'
 import App from "./App.vue";
+import { getCurrent } from "@tauri-apps/api/window";
 
 // Vuetify
-import 'vuetify/styles';
+import '~/scss/vuetify-theme.scss';
 import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 
 const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+// console.log('THEME', getCurrent().theme);
 
 const vuetify = createVuetify({
   components,
@@ -24,8 +26,8 @@ const vuetify = createVuetify({
     iconfont: 'mdi', // https://pictogrammers.com/library/mdi/
   },
   theme: {
-    defaultTheme: isDarkMode ? 'dark' : 'light'
-  }
+    defaultTheme: isDarkMode ? 'dark' : 'light',
+  },
 })
 
 const pinia = createPinia();

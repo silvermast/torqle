@@ -1,0 +1,5 @@
+.query-result > tbody > tr:hover > td {
+    background-color: var(--connection-color);
+    background-blend-mode: darken;
+    // background-color: rgba(#ffffff20);
+}

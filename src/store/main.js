@@ -6,6 +6,8 @@ import { makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
 
 export default defineStore('favorites', () => {
 
+    const defaultColor = '#2196f3'; // vuetify primary
+
     const selection = ref({});
     const favorites = ref([]);
 
@@ -13,7 +15,8 @@ export default defineStore('favorites', () => {
         selection.value = {
             id: null,
             title: '',
-            color: 'primary', // update!
+            color: defaultColor,
+            canSsh: true,
             useSsh: false,
             sshOpts: {
                 user: '',
@@ -22,14 +25,17 @@ export default defineStore('favorites', () => {
                 password: '',
                 keyfile: '',
             },
-            driverName: null,
+            driverName: /localhost:1420/.test(window.location) ? 'Test' : null,
             driverOpts: {},
         }
     }
 
+    function canSsh() {
+        return !/(sqlite|test)/i.test(selection.value.driverName);
+    }
+
     function setSelection(payload) {
-        // const currentConnection = JSON.parse(JSON.stringify(payload));
-        // currentConnection.driverOpts = currentConnection.driverOpts ?? {};
+        payload.canSsh = payload.driverName === 'SQLite' ? false : payload.canSsh;
         selection.value = payload;
     }
 

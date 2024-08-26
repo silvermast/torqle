@@ -3,11 +3,11 @@ import {
     exists,
     readTextFile,
     writeTextFile,
-    createDir,
-} from '@tauri-apps/api/fs';
+    mkdir,
+} from '@tauri-apps/plugin-fs';
 import { encrypt, decrypt, fetchKey, isEncrypted } from './Crypto.js';
 
-const fileOpts = { dir: BaseDirectory.AppLocalData };
+const fileOpts = { baseDir: BaseDirectory.AppLocalData };
 
 /**
  * @returns {Array<Object>}
@@ -34,7 +34,7 @@ async function fetchFavorites() {
 
 async function storeFavorites(favorites) {
     if (!await exists('data', fileOpts)) {
-        await createDir('data', { ...fileOpts, recursive: true });
+        await mkdir('data', { ...fileOpts, recursive: true });
     }
 
     const key = await fetchKey();

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 
 class Connector {
     opts = {};
@@ -24,8 +24,10 @@ class Connector {
                 host: this.opts.driverOpts?.host ?? '',
                 port: Number(this.opts.driverOpts?.port ?? 0),
                 user: this.opts.driverOpts?.user ?? '',
+                password: this.opts.driverOpts?.password ?? '',
+                filepath: this.opts.driverOpts?.filepath ?? '',
             },
-            sshOpts: {
+            sshOpts: !this.opts.useSsh ? null : {
                 host: this.opts.sshOpts?.host ?? '',
                 port: Number(this.opts.sshOpts?.port ?? 22),
                 user: this.opts.sshOpts?.user ?? '',
@@ -44,14 +46,26 @@ class Connector {
      * Tells the rust-end to create a connection. Internally, this is bound to the window.
      */
     async connect() {
-        return await invoke('connect', this.connectOpts);
+        return await invoke('adapter_connect', this.connectOpts);
     }
 
     /**
      * Tells the rust-end connection to disconnect
      */
     async disconnect() {
-        return await invoke('disconnect');
+        return await invoke('adapter_disconnect');
+    }
+
+    /**
+     * Attempts to reconnect
+     */
+    async reconnect() {
+        try {
+            await this.disconnect();
+        } catch (e) {
+            console.warn(e);
+        }
+        await this.connect();
     }
 
     /**
@@ -59,8 +73,8 @@ class Connector {
      */
     async test() {
         const opts = structuredClone(this.connectOpts);
-        console.log('test_connection', opts);
-        return await invoke('test_connection', opts);
+        console.log('adapter_test', opts);
+        return await invoke('adapter_test', opts);
     }
 
     /**
@@ -71,7 +85,7 @@ class Connector {
      */
     async query(query, database) {
         console.log({ query, database });
-        return invoke('query', { query, database });
+        return invoke('adapter_query', { query, database });
     }
 }
 

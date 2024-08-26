@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, getCurrentInstance } from 'vue';
 const props = defineProps({
     target: Object,
     vertical: Boolean,
@@ -7,9 +7,15 @@ const props = defineProps({
     thickness: Number,
 });
 
+const elHandle = ref();
+
+function getTarget() {
+    return props.target ?? elHandle.value.offsetParent ?? elHandle.value.parentNode;
+}
+
 const style = computed(() => {
     const result = {
-        background: props.color || 'rgba(var(--v-theme-primary))',
+        background: props.color,
     };
     if (props.vertical) {
         result.height = '100%';
@@ -26,7 +32,7 @@ const style = computed(() => {
 function startResize($event) {
     $event.preventDefault();
     $event.stopPropagation();
-    const resizeTarget = props.target;
+    const resizeTarget = getTarget();
     const resizeMetric = props.vertical ? 'pageX' : 'pageY';
     const resizeStyle = props.vertical ? 'width' : 'height';
     const offset = props.vertical ? resizeTarget.offsetLeft : resizeTarget.offsetTop;
@@ -56,7 +62,7 @@ function startResize($event) {
 </script>
 
 <template>
-    <div class="resize-handle" :class="{ vertical: props.vertical }" @mousedown="startResize" :style="style"></div>
+    <div ref="elHandle" class="resize-handle" :class="{ vertical: props.vertical }" @mousedown="startResize" :style="style"></div>
 </template>
 
 <style lang="scss" scoped>

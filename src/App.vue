@@ -1,18 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import ConnectView from './views/ConnectView.vue';
-import QueryView from './views/QueryView.vue';
+import ActionView from './views/ActionView.vue';
 import Snacks from './components/Snacks.vue';
 
 let connector = ref();
 
 function connect($event) {
-  console.log('received connect');
+  console.log('received connect', $event);
   connector.value = $event;
   document.title = connector.value.title ?? 'Connection';
 }
 function disconnect($event) {
-  console.log('received disconnect');
+  console.log('received disconnect', $event);
   connector.value = null;
 }
 
@@ -24,7 +24,7 @@ document.title = 'New Connection';
   <v-app>
     <Snacks />
     <ConnectView v-if="!connector" @connect="connect" />
-    <QueryView v-else v-bind="{ connector }" @disconnect="disconnect" />
+    <ActionView v-else v-bind="{ connector }" @disconnect="disconnect" />
   </v-app>
 </template>
 
