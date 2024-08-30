@@ -1,7 +1,19 @@
 version: "3.7"
 services:
+
+  ssh_tunnel:
+    image: bitnami/minideb
+    links:
+      - mysql
+      - postgres
+    ports: 
+      - 1022:22
+    volumes:
+      - ./.docker/ssh_tunnel:/root
+    command: ["install_packages", "ssh"]
+
   mysql:
-    image: mysql
+    image: bitnami/mysql
     ports:
       - 3306:3306
     environment:
