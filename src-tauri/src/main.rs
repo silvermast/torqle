@@ -1,16 +1,18 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(async_fn_in_trait)]
+
 use rand::{thread_rng, Rng};
 use serde::Serialize;
-use uuid::Uuid;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
 
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
-use tauri::{menu::{Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu}, State, Window};
+use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, State, Window};
 
-mod adapters;
-mod ssh;
+pub mod adapters;
+pub mod ssh;
+pub mod tests;
 
 #[derive(Serialize, Debug)]
 pub struct AppError {

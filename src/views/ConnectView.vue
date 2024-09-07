@@ -4,13 +4,14 @@ import { hideSnack, makeHappySnack, makeSpicySnack } from '~/components/Snacks.v
 import Password from '~/components/fields/Password.vue';
 import FavoritesList from '~/components/FavoritesList.vue';
 import ColorPicker from '~/components/fields/ColorPicker.vue';
+import ResizeHandle from '~/components/ResizeHandle.vue';
 import { open } from '@tauri-apps/plugin-dialog';
 
 import useFavoritesStore from '~/store/main.js';
 
-import { TestConnector } from '~/services/TestConnector.js';
-import { MysqlConnector } from '~/services/MysqlConnector.js';
-import { SqliteConnector } from '~/services/SqliteConnector.js';
+import { TestConnector } from '~/connectors/TestConnector.js';
+import { MysqlConnector } from '~/connectors/MysqlConnector.js';
+import { SqliteConnector } from '~/connectors/SqliteConnector.js';
 
 import TestFieldset from '~/components/fieldsets/TestFieldset.vue';
 import SqliteFieldset from '~/components/fieldsets/SqliteFieldset.vue';
@@ -37,6 +38,8 @@ const isOpeningFile = ref(false);
 const driver = computed(() => drivers.find(d => d.label === connection.value.driverName));
 const selectedColor = computed(() => connection.value.color ?? 'primary');
 const lastError = ref();
+
+const elFavoritesList = ref();
 
 watch(connection, () => lastError.value = null);
 
@@ -85,9 +88,12 @@ async function openSshKeyDialog() {
 
 <template>
   <div class="connect-view d-flex">
-    <v-sheet width="250" class="flex-grow-0">
-      <FavoritesList @connect="connect" />
-    </v-sheet>
+    <div ref="elFavoritesList" class="v-sheet flex-grow-0" style="width:250px; min-width:250px;">
+        <FavoritesList @connect="connect" />
+    </div>
+
+    <ResizeHandle :color="selectedColor" :target="elFavoritesList" :thickness="5" vertical />
+
     <div class="flex-grow-1 overflow-y-auto">
       <v-card max-width="700" class="mx-auto pa-5 my-5">
         <v-row>

@@ -1,5 +1,4 @@
 use ssh_jumper::model::SshForwarderEnd;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::time::SystemTime;
 use tokio::sync::oneshot::Receiver;
@@ -105,7 +104,7 @@ impl Adapter for AdapterEnum {
         match self {
             AdapterEnum::MySQL(adapter) => adapter.query(query, database).await,
             AdapterEnum::SQLite(adapter) => adapter.query(query, database).await,
-            _ => Err(AppError::from("Driver not found!")),
+            // _ => Err(AppError::from("Driver not found!")),
         }
     }
 
@@ -122,7 +121,7 @@ pub async fn connect_adapter(
     opts: AdapterOpts,
     ssh_opts: Option<SshOpts>,
 ) -> Result<AdapterEnum, AppError> {
-    let (driver_opts, ssh_tunnel): (AdapterOpts, Option<Receiver<SshForwarderEnd>>) = match ssh_opts
+    let (driver_opts, _ssh_tunnel): (AdapterOpts, Option<Receiver<SshForwarderEnd>>) = match ssh_opts
     {
         Some(ssh_opts_actual) => {
             let (new_opts, ssh_tunnel) = ssh::tunnel(opts, ssh_opts_actual).await?;

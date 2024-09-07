@@ -45,6 +45,7 @@
     "fs:default",
     "shell:default",
     "dialog:default",
-    "os:default"
+    "os:default",
+    "fs:default"
   ]
 }

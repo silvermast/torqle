@@ -1,5 +1,6 @@
-import { Connector } from './Connector';
+import { Connector } from './Connector.js';
 import { faker } from '@faker-js/faker';
+import QueryResult from '~/services/QueryResult.js';
 
 class TestConnector extends Connector {
     database = null;
@@ -38,6 +39,9 @@ class TestConnector extends Connector {
         if (query === 'error') {
             throw new Error(`Mock error message: ${faker.lorem.sentence()}`)
         }
+        
+        const elapsed_ms = 1000 * Math.random();
+
         console.log({ query });
         return new Promise(resolve => setTimeout(() => {
             let i = 1;
@@ -57,8 +61,15 @@ class TestConnector extends Connector {
                 secondary_contact_avatar: faker.image.avatar(),
                 secondary_contact_birthdate: faker.date.birthdate().toJSON(),
             }));
-            resolve({ rows, fields: Object.keys(rows[0]), num_rows, elapsed_ms: Math.round(Math.random() * 100, 2) });
-        }, 500));
+            const queryResult = new QueryResult({
+                rows,
+                fields: Object.keys(rows[0]),
+                num_rows,
+                elapsed_ms,
+            });
+            console.log('QueryResult:', queryResult);
+            resolve(queryResult);
+        }, elapsed_ms));
     }
 }
 export { TestConnector };

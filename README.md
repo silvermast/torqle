@@ -20,3 +20,8 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 ## Getting Started
 
 - Simply run `npm ci && npm run tauri dev` to get started!
+
+## Features
+
+### Favorites
+Favorites are stored within the application data directory under $APPLOCALDATA. They are encrypted with a secret generated on first-load, and stored in the operating system using Keytar.

@@ -2,10 +2,10 @@ import { Connector } from './Connector.js';
 
 class MysqlConnector extends Connector {
     getDatabase() {
-        return this.opts?.driverOpts?.database ?? null;
+        return this.options?.driverOpts?.database ?? null;
     }
     setDatabase(schema) {
-        this.opts.driverOpts.database = schema;
+        this.options.driverOpts.database = schema;
     }
 
     async disconnect() {

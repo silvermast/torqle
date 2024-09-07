@@ -168,19 +168,7 @@ onMounted(() => {
     highlightActiveLine: false,
   });
 
-  aceEditor.setValue(`SELECT * FROM testdb.users LIMIT 100;
-  
-  SELECT
-    foo,
-    bar,
-    blah
-  FROM db.table
-  JOIN db.meta ON foo = bar
-  WHERE foo = true
-  AND bar = 'blah'
-  LIMIT 100
-  ;
-  `);
+  aceEditor.setValue(``);
 
   // custom cursor logic happens here. Be careful about adding too many listeners!
   aceEditor.session.selection.on('changeCursor', () => moveCursor());

@@ -5,7 +5,6 @@ use chrono::{TimeZone, Utc};
 use mysql_async::prelude::Queryable;
 use mysql_async::{OptsBuilder, Pool, Row, Value};
 
-pub use serde_json::Map as JsonMap;
 pub use serde_json::Value as JsonValue;
 
 use super::{Adapter, AdapterOpts, QueryResult};
@@ -99,10 +98,10 @@ fn parse_row(row: Row) -> Result<HashMap<String, JsonValue>, AppError> {
                     .unwrap()
                 }) {
                     Ok(datetime) => JsonValue::String(datetime.to_rfc3339()),
-                    Err(err) => JsonValue::from("Invalid DateTime"),
+                    Err(_) => JsonValue::from("Invalid DateTime"),
                 }
             }
-            Value::Time(_neg, days, hours, mins, secs, usecs) => {
+            Value::Time(_neg, _days, hours, mins, secs, _usecs) => {
                 // Chrono's LocalResult only implements unwrap with a panic. So we need to catch it.
                 match catch_unwind(|| {
                     Utc.with_ymd_and_hms(0, 0, 0, hours as u32, mins as u32, secs as u32)
@@ -112,7 +111,7 @@ fn parse_row(row: Row) -> Result<HashMap<String, JsonValue>, AppError> {
                     Err(_) => JsonValue::from("Invalid Time"),
                 }
             }
-            _ => JsonValue::from("Unsupported type"),
+            // _ => JsonValue::from("Unsupported type"),
         };
         map.insert(field, value);
     }

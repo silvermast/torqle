@@ -1,9 +1,10 @@
 import { createApp } from "vue";
+import './helpers.mjs';
 import './polyfill.mjs';
-import "./styles.scss";
+import './styles.scss';
 import { createPinia } from 'pinia'
 import App from "./App.vue";
-import { getCurrent } from "@tauri-apps/api/window";
+// import { getCurrent } from "@tauri-apps/api/window";
 
 // Vuetify
 import '~/scss/vuetify-theme.scss';
