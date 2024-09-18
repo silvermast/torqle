@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, handleError } from 'vue';
+import { ref, computed } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryTab from '~/components/tabs/QueryTab.vue';
 import IconButton from '~/components/IconButton.vue';
@@ -26,8 +26,11 @@ const tables = ref();
 const databases = ref();
 const isReconnecting = ref(false);
 
+const maxTabs = 20;
+let tabCounter = 0;
+
 const tabs = ref([
-  { id: uuidv4(), title: 'Query', component: QueryTab },
+  { id: uuidv4(), title: `Query ${++tabCounter}`, component: QueryTab },
 ]);
 const selectedTab = ref(tabs.value[0].id);
 
@@ -81,7 +84,7 @@ async function reconnect() {
   try {
     await connector.reconnect();
   } catch (e) {
-    handleError(e);
+    makeSpicySnack(e);
     emit('disconnect');
     isReconnecting.value = false;
   }
@@ -90,18 +93,29 @@ async function reconnect() {
 
 function newQueryTab() {
   const id = uuidv4();
-  tabs.value.push({ id, title: 'Query', component: QueryTab });
+  tabs.value.push({ id, title: `Query ${++tabCounter}`, component: QueryTab });
   selectedTab.value = id;
 }
 
 function closeTab(tab) {
-  tabIndex = tabs.value.indexOf(tab);
+  const tabIndex = tabs.value.indexOf(tab);
   if (tabIndex !== -1) {
-    tabs.value = tabs.value.splice(tabIndex, 1);
+    tabs.value.splice(tabIndex, 1);
+    const nestNearestTab = tabs.value[tabIndex] ?? tabs.value[tabIndex - 1] ?? tabs.value[0];
+    selectedTab.value = nestNearestTab?.id;
   }
   if (tabs.value.length === 0) {
     newQueryTab();
   }
+}
+
+function selectNextTab() {
+  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTab.value) + 1;
+  selectedTab.value = tabs.value[tabIndex]?.id || tabs.value[0].id;
+}
+function selectPrevTab() {
+  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTab.value) - 1;
+  selectedTab.value = tabs.value[tabIndex]?.id || tabs.value[tabs.value.length - 1].id;
 }
 
 /**
@@ -136,22 +150,21 @@ loadTables();
 
     <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
-    <section id="view--tab-group">
-      <v-tabs
-        v-model="selectedTab"
-      >
-        <v-tab v-for="tab in tabs" :value="tab.id">
+    <section id="view--tab-container">
+      <v-btn-toggle v-model="selectedTab" :color="color" rounded="0" density="compact" :max="maxTabs" group mandatory>
+        <v-btn v-for="tab in tabs" :value="tab.id">
           {{ tab.title }}
-          <sup @click="closeTab(tab.id)">x</sup>
-        </v-tab>
-        <IconButton class="mt-2 ml-2" title="New Query Tab" icon="mdi-plus" @click="newQueryTab" />
-      </v-tabs>
+          <template v-slot:append>
+            <IconButton variant="text" icon="mdi-close" @click.stop="closeTab(tab)" />
+          </template>
+        </v-btn>
 
-      <v-tabs-window v-model="selectedTab">
-        <v-tabs-window-item v-for="tab in tabs" :value="tab.id">
-          <component :is="tab.component" v-bind="{ connector }" />
-        </v-tabs-window-item>
-      </v-tabs-window>
+        <IconButton variant="text" height="100%" class="ml-2 px-5" title="New Query Tab" icon="mdi-plus" @click="newQueryTab" :disabled="tabs.length === maxTabs" />
+      </v-btn-toggle>
+
+      <div class="view--tabs-window">
+        <component class="view--tabs-window-item" v-for="tab in tabs" :is="tab.component" v-bind="{ connector }" :key="tab.id" v-show="tab.id === selectedTab" />
+      </div>
     </section>
 
   </main>
@@ -159,7 +172,7 @@ loadTables();
 
 <style lang="scss" scoped>
 $actionHeight: 32px;
-$navHeight: 0px;
+$tabsHeight: 32px;
 
 nav#vertical-nav {
   width: 48px;
@@ -169,10 +182,9 @@ nav#vertical-nav {
 }
 
 main {
-  margin-top: $navHeight;
-  height: calc(100vh - $navHeight);
-  max-height: calc(100vh - $navHeight);
-  min-height: calc(100vh - $navHeight);
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 100vh;
   width: 100vw;
   max-width: 100vw;
   min-width: 100vw;
@@ -181,13 +193,21 @@ main {
   flex-direction: row;
   flex-wrap: nowrap;
 
-  section#view--tab-group {
-    width: inherit;
+  section#view--tab-container {
+    width: auto;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+}
+
+.view--tabs-window {
+  height: calc(100vh - $tabsHeight);
+  max-height: calc(100vh - $tabsHeight);
+  min-height: calc(100vh - $tabsHeight);
+  .view--tabs-window-item {
     height: 100%;
     max-height: 100%;
     min-height: 100%;
-    flex-grow: 1;
-    overflow: hidden;
   }
 }
 </style>

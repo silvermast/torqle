@@ -11,13 +11,13 @@ import QueryResult from '~/services/QueryResult';
 
 class Connector {
     options = {};
+    color = '#2196f3';
 
-    constructor(options) {
+    constructor({ color, ...options }) {
+        if (color) {
+            this.color = color;
+        }
         this.options = options;
-    }
-
-    get color() {
-        return this.opts?.color;
     }
 
     get dbHost() {

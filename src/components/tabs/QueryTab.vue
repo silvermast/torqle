@@ -73,6 +73,10 @@ section.tab--content {
     flex-basis: 100%;
     overflow: hidden;
 
+    > * {
+      flex-grow: 0;
+    }
+
     .tab--editor {
         overflow: auto;
         height: calc(100% - $actionHeight);
@@ -89,6 +93,7 @@ section.tab--content {
         overflow: auto;
         margin-bottom: $actionHeight;
         min-width: 100%;
+        flex-grow: 1;
     }
 
     .tab--stats {
@@ -96,6 +101,7 @@ section.tab--content {
         bottom: 0;
         height: $actionHeight;
         min-height: $actionHeight;
+        max-height: $actionHeight;
         width: 100%;
         border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
     }

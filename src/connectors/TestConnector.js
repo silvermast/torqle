@@ -2,6 +2,9 @@ import { Connector } from './Connector.js';
 import { faker } from '@faker-js/faker';
 import QueryResult from '~/services/QueryResult.js';
 import { sleep } from '~/helpers.mjs';
+import swatches from '~/swatches.json';
+
+const swatchesFlat = swatches.flat();
 
 class TestConnector extends Connector {
     database = null;
@@ -14,6 +17,7 @@ class TestConnector extends Connector {
     }
 
     async connect() {
+        this.color = swatchesFlat[Math.floor(Math.random() * swatchesFlat.length)];
         await sleep(1_000);
         return true;
     }
