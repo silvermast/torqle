@@ -25,3 +25,11 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 
 ### Favorites
 Favorites are stored within the application data directory under $APPLOCALDATA. They are encrypted with a secret generated on first-load, and stored in the operating system using Keytar.
+
+## Troubleshooting
+
+### On Linux: Error 71 (Protocol error) dispatching to Wayland display.
+
+See https://github.com/tauri-apps/tauri/issues/10702
+
+`WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev`
