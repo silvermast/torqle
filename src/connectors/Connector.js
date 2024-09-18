@@ -97,7 +97,7 @@ class Connector {
      * @param {String} database -- optional
      */
     async query(query) {
-        const database = getDatabase();
+        const database = this.getDatabase();
         const response = await invoke('adapter_query', { query, database });
         console.log('invoke adapter_query', { query, database, response });
         return new QueryResult(response);

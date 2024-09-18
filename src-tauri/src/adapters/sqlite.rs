@@ -58,6 +58,10 @@ impl Adapter for SQLiteAdapter {
                         let v: f64 = row.get(&i);
                         JsonValue::from(v)
                     },
+                    "DATETIME" => {
+                        let v: String = row.get(&i);
+                        JsonValue::from(v)
+                    },
                     _ => {
                         println!("Unable to decode '{}'", column.type_info().name());
                         JsonValue::Null

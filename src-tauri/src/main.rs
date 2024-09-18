@@ -6,10 +6,11 @@ use rand::{thread_rng, Rng};
 use serde::Serialize;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
-
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
 use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, State, Window};
+use uuid::Uuid;
 
+// pub mod menu;
 pub mod adapters;
 pub mod ssh;
 pub mod tests;
@@ -148,44 +149,57 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
-        .menu(|handle| Menu::with_items(handle, &[
-            &Submenu::with_items(
-                handle,
-                "File",
-                true,
-                &[
-                    &MenuItem::with_id(handle, "new_window", "New Window", true, None::<&str>)?,
-                    &PredefinedMenuItem::close_window(handle, None)?,
-                    &PredefinedMenuItem::quit(handle, None)?
-                ],
-            )?,
-            &Submenu::with_items(
-                handle,
-                "Edit",
-                true,
-                &[
-                    &PredefinedMenuItem::undo(handle, None)?,
-                    &PredefinedMenuItem::redo(handle, None)?,
-                    &PredefinedMenuItem::copy(handle, None)?,
-                    &PredefinedMenuItem::paste(handle, None)?,
-                    &PredefinedMenuItem::cut(handle, None)?,
-                    &PredefinedMenuItem::select_all(handle, None)?,
-                ],
-            )?,
-            &Submenu::with_items(
-                handle,
-                "Window",
-                true,
-                &[
-                    &PredefinedMenuItem::maximize(handle, None)?,
-                    &PredefinedMenuItem::minimize(handle, None)?,
-                    &PredefinedMenuItem::fullscreen(handle, None)?,
-                    &PredefinedMenuItem::hide(handle, None)?,
-                    &PredefinedMenuItem::hide_others(handle, None)?,
-                    &PredefinedMenuItem::show_all(handle, None)?,
-                ],
-            )?
-        ]))
+        .menu(|handle| {
+            let new_window_menu_item = MenuItem::with_id(handle, "new_window", "New Window", true, None::<&str>)?;
+            let menu = Menu::with_items(handle, &[
+                &Submenu::with_items(
+                    handle,
+                    "File",
+                    true,
+                    &[
+                        &new_window_menu_item,
+                        &PredefinedMenuItem::close_window(handle, None)?,
+                        &PredefinedMenuItem::quit(handle, None)?
+                    ],
+                )?,
+                &Submenu::with_items(
+                    handle,
+                    "Edit",
+                    true,
+                    &[
+                        &PredefinedMenuItem::undo(handle, None)?,
+                        &PredefinedMenuItem::redo(handle, None)?,
+                        &PredefinedMenuItem::copy(handle, None)?,
+                        &PredefinedMenuItem::paste(handle, None)?,
+                        &PredefinedMenuItem::cut(handle, None)?,
+                        &PredefinedMenuItem::select_all(handle, None)?,
+                    ],
+                )?,
+                &Submenu::with_items(
+                    handle,
+                    "Window",
+                    true,
+                    &[
+                        &PredefinedMenuItem::maximize(handle, None)?,
+                        &PredefinedMenuItem::minimize(handle, None)?,
+                        &PredefinedMenuItem::fullscreen(handle, None)?,
+                        &PredefinedMenuItem::hide(handle, None)?,
+                        &PredefinedMenuItem::hide_others(handle, None)?,
+                        &PredefinedMenuItem::show_all(handle, None)?,
+                    ],
+                )?
+            ]);
+
+            handle.on_menu_event(move |app, event| {
+                if event.id() == new_window_menu_item.id() {
+                    // emit a window event to the frontend
+                    let window_id = format!("{}", Uuid::new_v4());
+                    tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into())).build().unwrap();
+                }
+            });
+
+            menu
+        })
         .invoke_handler(tauri::generate_handler![
             adapter_connect,
             adapter_disconnect,
