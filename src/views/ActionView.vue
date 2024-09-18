@@ -20,6 +20,7 @@ const props = defineProps({
  */
 const connector = props.connector;
 
+const color = computed(() => connector.color);
 const selectedDatabase = ref(connector.getDatabase());
 const tables = ref();
 const databases = ref();
@@ -89,7 +90,6 @@ async function reconnect() {
 /**
  * Page Initialization
  */
-const color = computed(() => connector.color);
 document.documentElement.style.setProperty('--connection-color', `${color}60`);
 
 loadDatabases();
@@ -120,9 +120,8 @@ loadTables();
     <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
     <section id="view--tab-group">
-
+      <QueryTab v-bind="{ connector }" />
     </section>
-    <QueryTab v-bind="{ connector }" />
 
   </main>
 </template>

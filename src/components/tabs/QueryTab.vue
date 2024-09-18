@@ -12,18 +12,18 @@ const queryResult = ref();
 const queryError = ref();
 const elEditor = ref();
 
-const props = defineProps({
+const { connector } = defineProps({
   connector: { type: Connector, required: true },
 });
 
-const color = props.connector.color
+const color = connector.color
 
 async function runQuery() {
   isQuerying.value = true;
   queryError.value = null;
 
   try {
-    queryResult.value = await connector.query(queryText.value, selectedDatabase.value);
+    queryResult.value = await connector.query(queryText.value);
     console.log(queryResult.value);
   } catch (e) {
     console.warn(e);
@@ -62,7 +62,7 @@ async function runQuery() {
 $actionHeight: 32px;
 
 section.tab--content {
-    width: inherit;
+    width: 100%;
     height: 100%;
     max-height: 100%;
     min-height: 100%;
