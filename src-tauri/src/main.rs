@@ -194,7 +194,10 @@ fn main() {
                 if event.id() == new_window_menu_item.id() {
                     // emit a window event to the frontend
                     let window_id = format!("{}", Uuid::new_v4());
-                    tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into())).build().unwrap();
+                    let new_window = tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()));
+                    new_window.inner_size(1280, 800);
+
+                    new_window.build().unwrap()
                 }
             });
 
