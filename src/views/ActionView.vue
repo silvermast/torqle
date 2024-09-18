@@ -7,13 +7,13 @@ import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/connectors/Connector.js';
 import shortcuts from '~/services/KeyboardShortcuts.js';
 import SchemaSidebar from '../components/SchemaSidebar.vue';
+import { v4 as uuidv4 } from 'uuid';
 
 const emit = defineEmits(['disconnect']);
 
 const props = defineProps({
   connector: { type: Connector, required: true },
 });
-
 
 /**
  * @type {Connector}
@@ -26,9 +26,10 @@ const tables = ref();
 const databases = ref();
 const isReconnecting = ref(false);
 
-const tabs = [
-  { type: 'QUERY_EDITOR', props: { color, connector } },
-];
+const tabs = ref([
+  { id: uuidv4(), title: 'Query', component: QueryTab },
+]);
+const selectedTab = ref(tabs.value[0].id);
 
 async function selectDatabase(database) {
   await connector.setDatabase(database);
@@ -36,7 +37,7 @@ async function selectDatabase(database) {
 }
 async function selectTable(table) {
   console.log('selectTable', table);
-  // NEW TAB: table inspection
+  // @TODO New tab for table inspection
 }
 
 async function loadDatabases() {
@@ -87,6 +88,22 @@ async function reconnect() {
   isReconnecting.value = false;
 }
 
+function newQueryTab() {
+  const id = uuidv4();
+  tabs.value.push({ id, title: 'Query', component: QueryTab });
+  selectedTab.value = id;
+}
+
+function closeTab(tab) {
+  tabIndex = tabs.value.indexOf(tab);
+  if (tabIndex !== -1) {
+    tabs.value = tabs.value.splice(tabIndex, 1);
+  }
+  if (tabs.value.length === 0) {
+    newQueryTab();
+  }
+}
+
 /**
  * Page Initialization
  */
@@ -120,7 +137,21 @@ loadTables();
     <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
     <section id="view--tab-group">
-      <QueryTab v-bind="{ connector }" />
+      <v-tabs
+        v-model="selectedTab"
+      >
+        <v-tab v-for="tab in tabs" :value="tab.id">
+          {{ tab.title }}
+          <sup @click="closeTab(tab.id)">x</sup>
+        </v-tab>
+        <IconButton class="mt-2 ml-2" title="New Query Tab" icon="mdi-plus" @click="newQueryTab" />
+      </v-tabs>
+
+      <v-tabs-window v-model="selectedTab">
+        <v-tabs-window-item v-for="tab in tabs" :value="tab.id">
+          <component :is="tab.component" v-bind="{ connector }" />
+        </v-tabs-window-item>
+      </v-tabs-window>
     </section>
 
   </main>

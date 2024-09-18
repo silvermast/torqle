@@ -14,7 +14,7 @@ class TestConnector extends Connector {
     }
 
     async connect() {
-        await sleep(2_000);
+        await sleep(1_000);
         return true;
     }
 
@@ -23,7 +23,7 @@ class TestConnector extends Connector {
     }
 
     async reconnect() {
-        await sleep(2_000);
+        await sleep(1_000);
         return true;
     }
 
