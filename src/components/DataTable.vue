@@ -1,8 +1,23 @@
 <script setup>
+import { makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
 const props = defineProps({
     rows: { type: Array, default: [] },
     fields: { type: Array, default: [] },
 });
+
+function highlightElement($event) {
+    if (document.body.createTextRange) {
+        const range = document.body.createTextRange();
+        range.moveToElementText($event.target);
+        range.select();
+    } else if (window.getSelection) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents($event.target);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
 
 /**
  * @todo: implement framing for vertical scrolling to help reduce memory footprint
@@ -21,7 +36,8 @@ const props = defineProps({
         </thead>
         <tbody>
             <tr v-for="row in rows">
-                <td class="data-table-cell" v-for="field in fields" v-text="row[field]" />
+                <td class="data-table-cell" v-for="field in fields" v-text="row[field]"
+                    @dblclick.stop="highlightElement($event)" />
             </tr>
         </tbody>
     </table>

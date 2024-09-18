@@ -1,9 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, handleError } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
-import QueryEditor from '~/components/QueryEditor.vue';
-import QueryResults from '../components/QueryResults.vue';
-import QueryStats from '../components/QueryStats.vue';
+import QueryTab from '~/components/tabs/QueryTab.vue';
 import IconButton from '~/components/IconButton.vue';
 import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/connectors/Connector.js';
@@ -14,11 +12,8 @@ const emit = defineEmits(['disconnect']);
 
 const props = defineProps({
   connector: { type: Connector, required: true },
-  editorLang: { type: String, default: 'sql' },
 });
 
-const color = computed(() => props.connector?.opts?.color);
-document.documentElement.style.setProperty('--connection-color', `${color.value}60`);
 
 /**
  * @type {Connector}
@@ -28,11 +23,11 @@ const connector = props.connector;
 const selectedDatabase = ref(connector.getDatabase());
 const tables = ref();
 const databases = ref();
-const queryText = ref('-- Run a query!');
-const isQuerying = ref(false);
-const queryResult = ref();
-const queryError = ref();
 const isReconnecting = ref(false);
+
+const tabs = [
+  { type: 'QUERY_EDITOR', props: { color, connector } },
+];
 
 async function selectDatabase(database) {
   await connector.setDatabase(database);
@@ -53,31 +48,13 @@ async function loadDatabases() {
 }
 
 async function loadTables() {
+  tables.value = [];
   try {
     tables.value = await connector.loadTables();
     console.log('Tables', tables.value);
   } catch (e) {
     makeSpicySnack(e);
   }
-}
-
-async function reloadTablesAndDatabases() {
-  await Promise.all([loadDatabases, loadTables]);
-}
-
-async function runQuery() {
-  isQuerying.value = true;
-  queryError.value = null;
-
-  try {
-    queryResult.value = await connector.query(queryText.value, selectedDatabase.value);
-    console.log(queryResult.value);
-  } catch (e) {
-    console.warn(e);
-    queryError.value = (e.error ?? e).toString();
-  }
-
-  isQuerying.value = false;
 }
 
 async function disconnect() {
@@ -92,7 +69,6 @@ async function disconnect() {
 }
 
 const elSidebar = ref();
-const elEditor = ref();
 
 function debug($event) {
   console.log($event);
@@ -113,6 +89,8 @@ async function reconnect() {
 /**
  * Page Initialization
  */
+const color = computed(() => connector.color);
+document.documentElement.style.setProperty('--connection-color', `${color}60`);
 
 loadDatabases();
 loadTables();
@@ -141,26 +119,10 @@ loadTables();
 
     <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
-    <section id="view--content">
-      <div id="view--editor" style="height:320px; min-height:320px;" ref="elEditor">
-        <QueryEditor v-model="queryText" @run-selected="runQuery" />
-      </div>
+    <section id="view--tab-group">
 
-      <ResizeHandle :color="color" :target="elEditor" :thickness="5" horizontal />
-
-      <div id="view--actions" class="d-flex flex-row align-center">
-        <v-btn v-bind="{ color }" size="x-small" variant="elevated" rounded class="ml-auto mr-1" @click="runQuery"
-          :disabled="isQuerying || !queryText">Run Query</v-btn>
-      </div>
-
-      <div id="view--results">
-        <QueryResults v-bind="{ isQuerying, queryResult, queryError, color }" />
-      </div>
-
-      <div id="view--stats" class="d-flex align-center">
-        <QueryStats v-bind="queryResult" v-if="queryResult" />
-      </div>
     </section>
+    <QueryTab v-bind="{ connector }" />
 
   </main>
 </template>
@@ -189,44 +151,13 @@ main {
   flex-direction: row;
   flex-wrap: nowrap;
 
-  section#view--content {
+  section#view--tab-group {
     width: inherit;
     height: 100%;
     max-height: 100%;
     min-height: 100%;
     flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    flex-basis: 100%;
     overflow: hidden;
-
-    #view--editor {
-      overflow: auto;
-      height: calc(100% - $actionHeight);
-    }
-
-    #view--actions {
-      border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
-      height: $actionHeight;
-      min-height: $actionHeight;
-    }
-
-    #view--results {
-      position: relative;
-      overflow: auto;
-      margin-bottom: $actionHeight;
-      min-width: 100%;
-    }
-
-    #view--stats {
-      position: absolute;
-      bottom: 0;
-      height: $actionHeight;
-      min-height: $actionHeight;
-      width: 100%;
-      border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
-    }
   }
 }
 </style>

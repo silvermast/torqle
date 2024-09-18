@@ -27,16 +27,6 @@ const noResultsFound = computed(() => String(queryResult?.value?.numRows) === '0
       <v-alert v-else-if="noResultsFound" class="ma-5" v-bind="{ color }" text="No Results" variant="outlined" />
 
       <DataTable v-else-if="queryResult" v-bind="queryResult" />
-
-      <!-- <v-dialog v-model="showDialog" scrollable width="auto" rounded>
-        <v-card>
-          <v-card-title class="d-flex justify-end">
-            <v-icon icon="mdi-close" title="Close" @click="dialogText = null" />
-          </v-card-title>
-          <v-card-text>{{ dialogText }}</v-card-text>
-        </v-card>
-      </v-dialog> -->
-
     </template>
   </div>
 </template>

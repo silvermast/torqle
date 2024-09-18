@@ -1,3 +1,6 @@
+$font-size-root: 12px;
+$input-font-size: 12px;
+
 .query-result > tbody > tr:hover > td {
     background-color: var(--connection-color);
     background-blend-mode: darken;

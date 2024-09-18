@@ -16,6 +16,10 @@ class Connector {
         this.options = options;
     }
 
+    get color() {
+        return this.opts?.color;
+    }
+
     get dbHost() {
         return this.options?.driverOpts?.host;
     }
@@ -90,9 +94,10 @@ class Connector {
      * Runs a query
      * @TODO add "cancel" capability
      * @param {String} query
-     * @param {String} schema -- optional
+     * @param {String} database -- optional
      */
-    async query(query, database) {
+    async query(query) {
+        const database = getDatabase();
         const response = await invoke('adapter_query', { query, database });
         console.log('invoke adapter_query', { query, database, response });
         return new QueryResult(response);

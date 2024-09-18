@@ -20,12 +20,15 @@ import MysqlFieldset from '~/components/fieldsets/MysqlFieldset.vue';
 document.title = 'New Connection';
 
 const drivers = [
-  { label: 'Test', connector: TestConnector, fieldset: TestFieldset },
   { label: 'MySQL', connector: MysqlConnector, fieldset: MysqlFieldset },
   // { label: 'PostgreSQL', value: 'Postgresql' },
   // { label: 'MongoDB', value: 'Mongodb' },
   { label: 'SQLite', connector: SqliteConnector, fieldset: SqliteFieldset },
 ];
+
+if (process.env.NODE_ENV === 'development') {
+  drivers.push({ label: 'Test', connector: TestConnector, fieldset: TestFieldset });
+}
 
 const emit = defineEmits(['connect']);
 const store = useFavoritesStore();
