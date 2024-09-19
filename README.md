@@ -1,15 +1,15 @@
-# Possible Names
-- Taurbee
-- SeaQuill
-- IvyEye
-- SeaCat
-- Voxide (vue + iron oxide)
-- Vuxide
+Torqle
+==================================
+**T**auri **O**bject **R**elational **Q**uery **L**anguage **E**ditor
+
+In other words, it's a generic database query editor written in Tauri.
 
 
-# Tauri + Vue 3
+# Tauri + Vue 3 + Vuetify
 
-https://tauri.app/
+- https://tauri.app/
+- https://vuejs.org/
+- https://vuetifyjs.com/
 
 This template should help get you started developing with Tauri + Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
 

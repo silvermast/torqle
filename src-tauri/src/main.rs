@@ -109,10 +109,10 @@ async fn adapter_test(
 
 #[tauri::command]
 fn fetch_key() -> Result<String, String> {
-    let service = "taurbee";
+    let service = "torqle";
     let account = match get_current_username() {
         Some(username) => format!("{:?}", username),
-        None => "taurbee-default".to_string(),
+        None => "torqle-default".to_string(),
     };
 
     match keytar::get_password(service, &account) {
@@ -194,10 +194,10 @@ fn main() {
                 if event.id() == new_window_menu_item.id() {
                     // emit a window event to the frontend
                     let window_id = format!("{}", Uuid::new_v4());
-                    let new_window = tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()));
-                    new_window.inner_size(1280, 800);
-
-                    new_window.build().unwrap()
+                    tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()))
+                        .inner_size(1280.0, 800.0)
+                        .build()
+                        .unwrap();
                 }
             });
 

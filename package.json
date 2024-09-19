@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.0.1",
+    "@tauri-apps/cli-darwin-arm64": "^2.0.0-rc.10",
     "@vitejs/plugin-vue": "^4.0.0",
     "knex": "^2.5.1",
     "mongodb": "^6.8.0",
