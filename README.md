@@ -4,6 +4,7 @@ Torqle
 
 In other words, it's a generic database query editor written in Tauri.
 
+![Torqle Logo](src-tauri/icons/128x128.png)
 
 # Tauri + Vue 3 + Vuetify
 
