@@ -13,6 +13,7 @@
     "seed:sqlite": "node seeders/docker-seed-sqlite.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
+    "tauri:icon": "npm run tauri icon",
     "test": "vitest"
   },
   "dependencies": {
