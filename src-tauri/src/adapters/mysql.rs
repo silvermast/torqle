@@ -23,6 +23,7 @@ where
 
     let pool = Pool::new(mysql_opts);
 
+    // attempt a connection in order to validate credentials.
     pool.get_conn().await.map_err(AppError::from)?;
 
     Ok(MySQLAdapter { pool: pool })

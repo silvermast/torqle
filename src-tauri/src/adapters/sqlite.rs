@@ -13,6 +13,11 @@ where
 {
     let pool = SqlitePool::connect(&opts.filepath.as_str()).await.map_err(AppError::from)?;
 
+    let conn = pool.acquire().await.map_err(AppError::from)?;
+
+    // test the pool connection
+    sqlx::query("SELECT name FROM sqlite_master LIMIT 1").fetch_one(&pool).await.map_err(AppError::from)?;
+
     Ok(SQLiteAdapter { pool: pool })
 }
 
