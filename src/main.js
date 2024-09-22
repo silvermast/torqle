@@ -1,10 +1,19 @@
 import { createApp } from "vue";
-import './helpers.mjs';
-import './polyfill.mjs';
+import './helpers.js';
+import './polyfill.js';
 import './styles.scss';
+// import { initMenu } from './menu.js';
+import { shortcuts } from './services/KeyboardShortcuts.js';
 import { createPinia } from 'pinia'
 import App from "./App.vue";
-// import { getCurrent } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+ 
+// initMenu(); // no need to await
+
+shortcuts.closeWindow.register(() => {
+  const tauriWindow = getCurrentWindow();
+  tauriWindow.destroy();
+});
 
 // Vuetify
 import '~/scss/vuetify-theme.scss';
@@ -13,13 +22,12 @@ import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 
 const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-// console.log('THEME', getCurrent().theme);
+// console.log('THEME', getCurrentWindow().theme);
 
 const vuetify = createVuetify({
   components,
   directives,
   defaults: {
-    // global: { density: 'compact' },
     VRow: { dense: true },
     VBtn: { density: 'default', rounded: true },
   },

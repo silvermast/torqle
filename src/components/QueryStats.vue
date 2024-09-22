@@ -1,5 +1,5 @@
 <script setup>
-import { isNull } from '~/helpers.mjs';
+import { isNull } from '~/helpers.js';
 
 const props = defineProps({
   numRows: { type: Number, default: null },

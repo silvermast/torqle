@@ -1,7 +1,7 @@
 import { Connector } from './Connector.js';
 import { faker } from '@faker-js/faker';
 import QueryResult from '~/services/QueryResult.js';
-import { sleep } from '~/helpers.mjs';
+import { sleep } from '~/helpers.js';
 import swatches from '~/swatches.json';
 
 const swatchesFlat = swatches.flat();

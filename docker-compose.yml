@@ -1,4 +1,3 @@
-version: "3.7"
 services:
 
   ssh_tunnel:
@@ -7,9 +6,9 @@ services:
       - mysql
       - postgres
     ports: 
-      - 1022:22
+      - 10022:22
     volumes:
-      - ./.docker/ssh_tunnel:/root
+      - ./testdata/ssh_tunnel:/root
     command: ["install_packages", "ssh"]
 
   mysql:
@@ -29,8 +28,6 @@ services:
       POSTGRESQL_USERNAME: pguser
       POSTGRESQL_PASSWORD: mypassword
       POSTGRESQL_DATABASE: testdb
-    volumes: 
-      - ./.docker/postgres:/bitnami/postgresql
 
   mongo:
     image: mongo

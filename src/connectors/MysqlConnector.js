@@ -8,10 +8,6 @@ class MysqlConnector extends Connector {
         this.options.driverOpts.database = schema;
     }
 
-    async disconnect() {
-        return true;
-    }
-
     async loadDatabases() {
         const result = await this.query('SHOW DATABASES;');
         console.log('loadSchemas', result);

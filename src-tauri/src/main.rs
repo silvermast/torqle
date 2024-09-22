@@ -7,13 +7,20 @@ use serde::Serialize;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
-use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, State, Window};
-use uuid::Uuid;
+use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Runtime, State, Window};
 
-// pub mod menu;
+pub mod menu;
 pub mod adapters;
 pub mod ssh;
 pub mod tests;
+
+#[macro_export]
+macro_rules! uuidv4 {
+    () => {
+        uuid::Uuid::new_v4().to_string()
+    };
+}
+
 
 #[derive(Serialize, Debug)]
 pub struct AppError {
@@ -67,11 +74,13 @@ impl AppState {
 #[tauri::command]
 async fn adapter_connect(
     window: Window,
+    title: String,
     driver_opts: AdapterOpts,
     ssh_opts: Option<SshOpts>,
     state: State<'_, AppState>,
 ) -> Result<bool, AppError> {
     let adapter = connect_adapter(driver_opts, ssh_opts).await?;
+    window.set_title(title.as_str()).unwrap_or_default();
     state.set_adapter(&window, adapter)
 }
 
@@ -93,6 +102,7 @@ async fn adapter_disconnect(
 ) -> Result<bool, AppError> {
     let mut adapter: AdapterEnum = state.remove_adapter(&window)?;
     adapter.disconnect().await?;
+    window.set_title("New Connection").unwrap_or_default();
     Ok(true)
 }
 
@@ -149,60 +159,6 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
-        .menu(|handle| {
-            let new_window_menu_item = MenuItem::with_id(handle, "new_window", "New Window", true, None::<&str>)?;
-            let menu = Menu::with_items(handle, &[
-                &Submenu::with_items(
-                    handle,
-                    "File",
-                    true,
-                    &[
-                        &new_window_menu_item,
-                        &PredefinedMenuItem::close_window(handle, None)?,
-                        &PredefinedMenuItem::quit(handle, None)?
-                    ],
-                )?,
-                &Submenu::with_items(
-                    handle,
-                    "Edit",
-                    true,
-                    &[
-                        &PredefinedMenuItem::undo(handle, None)?,
-                        &PredefinedMenuItem::redo(handle, None)?,
-                        &PredefinedMenuItem::copy(handle, None)?,
-                        &PredefinedMenuItem::paste(handle, None)?,
-                        &PredefinedMenuItem::cut(handle, None)?,
-                        &PredefinedMenuItem::select_all(handle, None)?,
-                    ],
-                )?,
-                &Submenu::with_items(
-                    handle,
-                    "Window",
-                    true,
-                    &[
-                        &PredefinedMenuItem::maximize(handle, None)?,
-                        &PredefinedMenuItem::minimize(handle, None)?,
-                        &PredefinedMenuItem::fullscreen(handle, None)?,
-                        &PredefinedMenuItem::hide(handle, None)?,
-                        &PredefinedMenuItem::hide_others(handle, None)?,
-                        &PredefinedMenuItem::show_all(handle, None)?,
-                    ],
-                )?
-            ]);
-
-            handle.on_menu_event(move |app, event| {
-                if event.id() == new_window_menu_item.id() {
-                    // emit a window event to the frontend
-                    let window_id = format!("{}", Uuid::new_v4());
-                    tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()))
-                        .inner_size(1280.0, 800.0)
-                        .build()
-                        .unwrap();
-                }
-            });
-
-            menu
-        })
         .invoke_handler(tauri::generate_handler![
             adapter_connect,
             adapter_disconnect,
@@ -210,6 +166,70 @@ fn main() {
             adapter_query,
             fetch_key
         ])
+        .setup(|app_handle| -> Result<(), Box<dyn std::error::Error>> {
+            menu::customize(app_handle)?;
+            // other app setup code can go here...
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+
+// .menu(|handle| {
+        //     let new_window_menu_item = MenuItem::with_id(handle, "new_window", "New Window", true, Some("CommandOrControl+N"))?;
+        //     // let close_window = PredefinedMenuItem::close_window(handle, None)?;
+
+        //     let menu = Menu::with_items(handle, &[
+        //         &Submenu::with_items(
+        //             handle,
+        //             "File",
+        //             true,
+        //             &[
+        //                 &new_window_menu_item,
+        //                 // &close_window,
+        //                 &PredefinedMenuItem::quit(handle, None)?
+        //             ],
+        //         )?,
+        //         &Submenu::with_items(
+        //             handle,
+        //             "Edit",
+        //             true,
+        //             &[
+        //                 &PredefinedMenuItem::undo(handle, None)?,
+        //                 &PredefinedMenuItem::redo(handle, None)?,
+        //                 &PredefinedMenuItem::copy(handle, None)?,
+        //                 &PredefinedMenuItem::paste(handle, None)?,
+        //                 &PredefinedMenuItem::cut(handle, None)?,
+        //                 &PredefinedMenuItem::select_all(handle, None)?,
+        //             ],
+        //         )?,
+        //         &Submenu::with_items(
+        //             handle,
+        //             "Window",
+        //             true,
+        //             &[
+        //                 &PredefinedMenuItem::maximize(handle, None)?,
+        //                 &PredefinedMenuItem::minimize(handle, None)?,
+        //                 &PredefinedMenuItem::fullscreen(handle, None)?,
+        //                 &PredefinedMenuItem::hide(handle, None)?,
+        //                 &PredefinedMenuItem::hide_others(handle, None)?,
+        //                 &PredefinedMenuItem::show_all(handle, None)?,
+        //             ],
+        //         )?
+        //     ]);
+
+        //     handle.on_menu_event(move |app, event| {
+        //         if event.id() == new_window_menu_item.id() {
+        //             // emit a window event to the frontend
+        //             let window_id = format!("{}", Uuid::new_v4());
+        //             tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()))
+        //                 .title("New Connection")
+        //                 .inner_size(1280.0, 800.0)
+        //                 .build()
+        //                 .unwrap();
+        //         }
+        //     });
+
+        //     menu
+        // })

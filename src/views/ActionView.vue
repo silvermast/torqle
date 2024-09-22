@@ -1,11 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onBeforeMount, onBeforeUnmount } from 'vue';
 import { makeSpicySnack, makeHappySnack } from '~/components/Snacks.vue';
 import QueryTab from '~/components/tabs/QueryTab.vue';
 import IconButton from '~/components/IconButton.vue';
 import ResizeHandle from '~/components/ResizeHandle.vue';
 import { Connector } from '~/connectors/Connector.js';
-import shortcuts from '~/services/KeyboardShortcuts.js';
+import { shortcuts } from '../services/KeyboardShortcuts.js';
 import SchemaSidebar from '../components/SchemaSidebar.vue';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -32,7 +32,7 @@ let tabCounter = 0;
 const tabs = ref([
   { id: uuidv4(), title: `Query ${++tabCounter}`, component: QueryTab },
 ]);
-const selectedTab = ref(tabs.value[0].id);
+const selectedTabId = ref(tabs.value[0].id);
 
 async function selectDatabase(database) {
   await connector.setDatabase(database);
@@ -94,15 +94,17 @@ async function reconnect() {
 function newQueryTab() {
   const id = uuidv4();
   tabs.value.push({ id, title: `Query ${++tabCounter}`, component: QueryTab });
-  selectedTab.value = id;
+  selectedTabId.value = id;
 }
 
-function closeTab(tab) {
-  const tabIndex = tabs.value.indexOf(tab);
+function closeTab(tabId) {
+  const tabIdToSearch = tabId || selectedTabId.value;
+  console.log('closing tab', tabIdToSearch);
+  const tabIndex = tabs.value.findIndex(tab => tab.id === tabIdToSearch);
   if (tabIndex !== -1) {
     tabs.value.splice(tabIndex, 1);
     const nestNearestTab = tabs.value[tabIndex] ?? tabs.value[tabIndex - 1] ?? tabs.value[0];
-    selectedTab.value = nestNearestTab?.id;
+    selectedTabId.value = nestNearestTab?.id;
   }
   if (tabs.value.length === 0) {
     newQueryTab();
@@ -110,13 +112,27 @@ function closeTab(tab) {
 }
 
 function selectNextTab() {
-  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTab.value) + 1;
-  selectedTab.value = tabs.value[tabIndex]?.id || tabs.value[0].id;
+  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTabId.value) + 1;
+  selectedTabId.value = tabs.value[tabIndex]?.id || tabs.value[0].id;
 }
 function selectPrevTab() {
-  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTab.value) - 1;
-  selectedTab.value = tabs.value[tabIndex]?.id || tabs.value[tabs.value.length - 1].id;
+  const tabIndex = tabs.value.findIndex(tab => tab.id === selectedTabId.value) - 1;
+  selectedTabId.value = tabs.value[tabIndex]?.id || tabs.value[tabs.value.length - 1].id;
 }
+
+onBeforeMount(async () => {
+    shortcuts.newTab.register(newQueryTab);
+    shortcuts.closeTab.register(closeTab);
+    shortcuts.nextTab.register(selectNextTab);
+    shortcuts.prevTab.register(selectPrevTab);
+});
+
+onBeforeUnmount(() => {
+  shortcuts.newTab.unregister();
+  shortcuts.closeTab.unregister();
+  shortcuts.nextTab.unregister();
+  shortcuts.prevTab.unregister();
+});
 
 /**
  * Page Initialization
@@ -151,11 +167,11 @@ loadTables();
     <ResizeHandle :color="color" :target="elSidebar" :thickness="5" vertical />
 
     <section id="view--tab-container">
-      <v-btn-toggle v-model="selectedTab" :color="color" rounded="0" density="compact" :max="maxTabs" group mandatory>
+      <v-btn-toggle v-model="selectedTabId" :color="color" rounded="0" density="compact" :max="maxTabs" group mandatory>
         <v-btn v-for="tab in tabs" :value="tab.id">
           {{ tab.title }}
           <template v-slot:append>
-            <IconButton variant="text" icon="mdi-close" @click.stop="closeTab(tab)" />
+            <IconButton variant="text" icon="mdi-close" @click.stop="closeTab(tab.id)" />
           </template>
         </v-btn>
 
@@ -163,7 +179,7 @@ loadTables();
       </v-btn-toggle>
 
       <div class="view--tabs-window">
-        <component class="view--tabs-window-item" v-for="tab in tabs" :is="tab.component" v-bind="{ connector }" :key="tab.id" v-show="tab.id === selectedTab" />
+        <component class="view--tabs-window-item" v-for="tab in tabs" :is="tab.component" v-bind="{ connector }" :key="tab.id" v-show="tab.id === selectedTabId" />
       </div>
     </section>
 

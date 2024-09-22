@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
-import shortcuts from '~/services/KeyboardShortcuts.js';
+import { computed, ref, onBeforeUnmount } from 'vue';
+import { shortcuts } from '../services/KeyboardShortcuts.js';
 
 const props = defineProps({
     selectedDatabase: { type: String, default: null },
@@ -26,11 +26,16 @@ function matchesTableFilter(value) {
     return new RegExp(tableFilter?.value, 'i').test(value);
 }
 
-shortcuts.register(shortcuts.global.selectDatabase.forTauri(), () => {
+shortcuts.selectDatabase.register(() => {
     elDatabaseSelector.value?.focus();
 });
-shortcuts.register(shortcuts.global.filterTables.forTauri(), () => {
+shortcuts.filterTables.register(() => {
     elTableFilter.value?.focus();
+});
+
+onBeforeUnmount(() => {
+    shortcuts.selectDatabase.unregister();
+    shortcuts.filterTables.unregister();
 });
 </script>
 

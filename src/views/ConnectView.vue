@@ -17,8 +17,6 @@ import TestFieldset from '~/components/fieldsets/TestFieldset.vue';
 import SqliteFieldset from '~/components/fieldsets/SqliteFieldset.vue';
 import MysqlFieldset from '~/components/fieldsets/MysqlFieldset.vue';
 
-document.title = 'New Connection';
-
 const drivers = [
   { label: 'MySQL', connector: MysqlConnector, fieldset: MysqlFieldset },
   // { label: 'PostgreSQL', value: 'Postgresql' },

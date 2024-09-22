@@ -8,7 +8,7 @@ import aceModeMysqlUrl from 'ace-builds/src-noconflict/mode-mysql?url';
 import aceModePostgresUrl from 'ace-builds/src-noconflict/mode-pgsql?url';
 import aceModeSqlServerUrl from 'ace-builds/src-noconflict/mode-sqlserver?url';
 import aceModeJavascriptUrl from 'ace-builds/src-noconflict/mode-javascript?url';
-import shortcuts from '../services/KeyboardShortcuts.js';
+import { shortcuts } from '../services/KeyboardShortcuts.js';
 
 const delimiter = ';'; // @todo: convert to prop?
 
@@ -181,7 +181,7 @@ onMounted(() => {
 
   aceEditor.commands.addCommand({
     name: 'runQuery',
-    bindKey: shortcuts.editor.runQuery.forAce(),
+    bindKey: shortcuts.runQuery.formatForAce(),
     exec: function(editor) {
         emit('runSelected', query.value);
     },
@@ -190,17 +190,17 @@ onMounted(() => {
 
   aceEditor.commands.addCommand({
     ...aceEditor.commands.byName.selectMoreAfter,
-    bindKey: shortcuts.editor.addCursorAtNextItem.forAce(),
+    bindKey: shortcuts.addCursorAtNextItem.formatForAce(),
   });
 
   aceEditor.commands.addCommand({
     ...aceEditor.commands.byName.selectMoreBefore,
-    bindKey: shortcuts.editor.addCursorAtPrevItem.forAce(),
+    bindKey: shortcuts.addCursorAtPrevItem.formatForAce(),
   });
 
   aceEditor.commands.addCommand({
     ...aceEditor.commands.byName.toggleSplitSelectionIntoLines,
-    bindKey: shortcuts.editor.addCursorsAtSelectedLines.forAce(),
+    bindKey: shortcuts.addCursorsAtSelectedLines.formatForAce(),
   });
 
   // Disable these commands

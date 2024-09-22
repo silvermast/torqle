@@ -59,7 +59,7 @@ class Connector {
      * Tells the rust-end to create a connection. Internally, this is bound to the window.
      */
     async connect() {
-        return await invoke('adapter_connect', this.connectOpts);
+        return await invoke('adapter_connect', structuredClone(this.connectOpts));
     }
 
     /**
@@ -85,9 +85,9 @@ class Connector {
      * Tests the connection info
      */
     async test() {
-        const options = structuredClone(this.connectOpts);
-        console.log('adapter_test', options);
-        return await invoke('adapter_test', options);
+        const rsp =  await invoke('adapter_test', structuredClone(this.connectOpts));
+        console.log('adapter_test', rsp);
+        return rsp;
     }
 
     /**

@@ -1,7 +1,7 @@
 {
   "name": "torqle",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,6 @@
     "seed:mongo": "node seeders/docker-seed-mongo.js",
     "seed:mysql": "node seeders/docker-seed-mysql.js",
     "seed:postgres": "node seeders/docker-seed-postgres.js",
-    "seed:sqlite": "node seeders/docker-seed-sqlite.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:icon": "npm run tauri icon",

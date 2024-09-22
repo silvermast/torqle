@@ -23,6 +23,8 @@ where
 
     let pool = Pool::new(mysql_opts);
 
+    pool.get_conn().await.map_err(AppError::from)?;
+
     Ok(MySQLAdapter { pool: pool })
 }
 
