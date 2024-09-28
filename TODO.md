@@ -5,9 +5,9 @@ TO DO List
 - Test stale connections & ability to reconnect easily. Ensure loading state displayed when connecting
 - Add Menus back. Tauri 1 managed these in Rust, but Tauri 2 manages them in JS. Waiting on documentation.
 - Settings!
-- - query history length
-- - editor configs (tabs, indent, theme, font size)
-- - keyboard shortcuts
+  - query history length
+  - editor configs (tabs, indent, theme, font size)
+  - keyboard shortcuts
 
 ## Rust
 
@@ -27,3 +27,11 @@ TO DO List
 - ACE Editor Sessions (save & restore)
 - Saved queries
 - Query history faced by connection
+- Replace Vuetify with something less gross
+
+## Issues
+
+- "database" doesn't stick when selecting one
+- When writing a query, there's logic to highlight the active query based on cursor location. If you type out a query, then ;, then hit enter, it's not finding the query just before the cursor
+- The docker-compose ssh tunnel is not fully set up
+- When hitting the "Filter Database" keyboard shortcut, the user experience is awful

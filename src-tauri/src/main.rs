@@ -7,7 +7,8 @@ use serde::Serialize;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
 use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
-use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Runtime, State, Window};
+// use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Runtime, State, Window};
+use tauri::{State, Window};
 
 pub mod menu;
 pub mod adapters;
