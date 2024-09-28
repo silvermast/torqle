@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# For now, ignore the lock file to avoid platform binary conflicts
+./package-lock.json

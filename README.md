@@ -30,6 +30,20 @@ Favorites are stored within the application data directory under $APPLOCALDATA. 
 
 ## Troubleshooting
 
+### Various errors about architecture packages related to @tauri-app/cli, darwin / linux, etc
+
+Quick fix: delete `package-lock.json` and `node_modules`, then `npm i`
+
+### On Mac: Error about missing cargo metadata
+
+Rust / Cargo isn't installed or isn't initialized correctly.
+
+If using Homebrew:
+ - `brew install rustup`
+ - Make sure correct rustup / cargo is in path, add `export PATH="/usr/local/opt/rustup/bin:$PATH"` to your profile
+ - `rustup default stable`
+ - Verify with `cargo --version`
+
 ### On Linux: Error 71 (Protocol error) dispatching to Wayland display.
 
 See https://github.com/tauri-apps/tauri/issues/10702
