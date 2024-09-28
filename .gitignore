@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # For now, ignore the lock file to avoid platform binary conflicts
-./package-lock.json
+package-lock.json
