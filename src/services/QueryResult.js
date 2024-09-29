@@ -1,6 +1,4 @@
-function isNull(value) {
-    return value === null || value === undefined;
-}
+import { toNumber } from '~/helpers.js';
 
 /**
  * @typedef QueryResult
@@ -16,8 +14,8 @@ class QueryResult {
     fields = null;
 
     constructor({ rows, fields, num_rows, elapsed_ms }) {
-        this.elapsedMs = !isNull(elapsed_ms) ? Number(elapsed_ms) : null;
-        this.numRows = !isNull(num_rows) ? Number(num_rows) : null;
+        this.elapsedMs = toNumber(elapsed_ms);
+        this.numRows = toNumber(num_rows);
         this.fields = fields ?? [];
         this.rows = rows ?? [];
     }

@@ -5,10 +5,10 @@ services:
     links:
       - mysql
       - postgres
-    ports: 
+    ports:
       - 10022:22
     volumes:
-      - ./testdata/ssh_tunnel:/root
+      - ./data/ssh_tunnel:/root
     command: ["install_packages", "ssh"]
 
   mysql:
@@ -19,10 +19,10 @@ services:
       MYSQL_ROOT_PASSWORD: mypassword
       SQL_MODE: ""
       MYSQL_DATABASE: testdb
-    
+
   postgres:
     image: bitnami/postgresql
-    ports: 
+    ports:
       - 5432:5432
     environment:
       POSTGRESQL_USERNAME: pguser
@@ -35,5 +35,5 @@ services:
       - 27017:27017
 
 networks:
-  spear:
+  torqle:
     external: true

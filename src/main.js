@@ -1,13 +1,12 @@
-import { createApp } from "vue";
-import './helpers.js';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { createPinia } from 'pinia';
+import { createApp } from 'vue';
 import './polyfill.js';
 import './styles.scss';
 // import { initMenu } from './menu.js';
 import { shortcuts } from './services/KeyboardShortcuts.js';
-import { createPinia } from 'pinia'
-import App from "./App.vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
- 
+import App from './App.vue';
+
 // initMenu(); // no need to await
 
 shortcuts.closeWindow.register(() => {
@@ -21,7 +20,9 @@ import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 
-const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const isDarkMode = globalThis.matchMedia?.(
+  '(prefers-color-scheme: dark)'
+).matches;
 // console.log('THEME', getCurrentWindow().theme);
 
 const vuetify = createVuetify({
@@ -37,8 +38,8 @@ const vuetify = createVuetify({
   theme: {
     defaultTheme: isDarkMode ? 'dark' : 'light',
   },
-})
+});
 
 const pinia = createPinia();
 
-createApp(App).use(pinia).use(vuetify).mount("#app");
+createApp(App).use(pinia).use(vuetify).mount('#app');

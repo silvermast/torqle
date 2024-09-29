@@ -30,6 +30,28 @@ Favorites are stored within the application data directory under $APPLOCALDATA. 
 
 ## Troubleshooting
 
+### Various errors about architecture or platform related to @tauri-app/cli, darwin / linux, etc
+
+1. First just delete `node_modules` and attempt an `npm ci` again.
+1. If that fails, delete `package-lock.json` and `node_modules` and run `npm i`.
+1. If that fails, check your cpu and os:
+    - Run ``node -e 'console.log(`os: ${process.platform}\ncpu: ${process.arch}\`)'`` and make note of the "os" and "cpu" values.
+    - Check the "os" and "cpu" options in `package.json`.
+    - If cpu or os is not represented, you can add it to the appropriate option array, and then run step 2 again.
+1. If you _still_ get this error, you can manually install the package it says is missing without saving it to the package.json, or force install it for a given platform using the `--os` and `--cpu` options of `npm install`. This is not a permanent solution, and may need to be repeated on subsequent installs.
+    - `npm install "@tauri-apps/cli-darwin-x64"` (be careful to match version in package)
+    - Or maybe `npm install @tauri-apps/cli --os darwin --cpu x64`
+
+### On Mac: Error about missing cargo metadata
+
+Rust / Cargo isn't installed or isn't initialized correctly.
+
+If using Homebrew:
+ - `brew install rustup`
+ - Make sure correct rustup / cargo is in path, add `export PATH="/usr/local/opt/rustup/bin:$PATH"` to your profile
+ - `rustup default stable`
+ - Verify with `cargo --version`
+
 ### On Linux: Error 71 (Protocol error) dispatching to Wayland display.
 
 See https://github.com/tauri-apps/tauri/issues/10702

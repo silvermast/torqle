@@ -112,7 +112,7 @@ impl Adapter for AdapterEnum {
         match self {
             AdapterEnum::MySQL(adapter) => adapter.disconnect().await,
             AdapterEnum::SQLite(adapter) => adapter.disconnect().await,
-            _ => Ok(true),
+            // _ => Ok(true),
         }
     }
 }
