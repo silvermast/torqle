@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.3.0",
   "type": "module",
+  "os": ["windows", "macos", "linux"],
+  "cpu": ["x64", "arm64"],
   "scripts": {
     "start": "npm run tauri:dev",
     "dev": "vite",
