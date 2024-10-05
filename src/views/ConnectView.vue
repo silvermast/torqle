@@ -138,6 +138,10 @@ async function openSshKeyDialog() {
                   variant="outlined" color="grey">
                   Select SSH Key
                 </v-btn>
+                <v-btn class="mx-2" v-if="connection.sshOpts.keyfile !== null" @click="connection.sshOpts.keyfile = null" variant="outlined"
+                  color="grey">
+                  Clear
+                </v-btn>
                 <div><small v-if="connection.sshOpts.keyfile" v-text="connection.sshOpts.keyfile" /></div>
               </v-col>
             </v-row>

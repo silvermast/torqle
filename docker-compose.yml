@@ -1,15 +1,16 @@
 services:
 
   ssh_tunnel:
-    image: bitnami/minideb
+    image: lscr.io/linuxserver/openssh-server:latest
     links:
       - mysql
       - postgres
     ports:
       - 10022:22
-    volumes:
-      - ./data/ssh_tunnel:/root
-    command: ["install_packages", "ssh"]
+    environment:
+      # enable root login with optional password
+      SUDO_ACCESS: true
+      USER_PASSWORD: littlebuddy
 
   mysql:
     image: bitnami/mysql

@@ -8,6 +8,7 @@ pub use serde_json::Map as JsonMap;
 pub use serde_json::Value as JsonValue;
 
 use crate::ssh;
+use crate::ssh::SshTunnel;
 use crate::AppError;
 
 mod mysql;
@@ -121,7 +122,7 @@ pub async fn connect_adapter(
     opts: AdapterOpts,
     ssh_opts: Option<SshOpts>,
 ) -> Result<AdapterEnum, AppError> {
-    let (driver_opts, _ssh_tunnel): (AdapterOpts, Option<Receiver<SshForwarderEnd>>) = match ssh_opts
+    let (driver_opts, _ssh_tunnel): (AdapterOpts, Option<SshTunnel>) = match ssh_opts
     {
         Some(ssh_opts_actual) => {
             let (new_opts, ssh_tunnel) = ssh::tunnel(opts, ssh_opts_actual).await?;

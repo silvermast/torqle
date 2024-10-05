@@ -23,6 +23,19 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 - Follow the instructions for installing [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/) for your system.
 - Then, simply run `npm ci && npm run tauri dev` to get started!
 
+### Local Development Containers
+
+The project includes a docker-compose file specifically for local development. Run `docker-compose up -d` to initialize them.
+
+#### SSHD
+To utilize the ssh tunnel, use `root@127.0.0.1:10022` with no password, or a password of `littlebuddy`. RSA key coming soon
+
+#### MySQL
+To connect to MySQL, use `root:mypassword@127.0.0.1:3306`. If connecting through the tunnel, set the host to `mysql`.
+
+#### Sqlite
+The Sqlite implementation does not currently support an SSH tunnel. However, there is a test database in the `./data` directory
+
 ## Features
 
 ### Favorites

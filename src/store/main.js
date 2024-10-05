@@ -23,7 +23,7 @@ export default defineStore('favorites', () => {
                 host: '',
                 port: 22,
                 password: '',
-                keyfile: '',
+                keyfile: null,
             },
             driverName: /localhost:1420/.test(window.location) ? 'Test' : null,
             driverOpts: {},
