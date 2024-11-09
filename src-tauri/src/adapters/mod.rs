@@ -1,14 +1,12 @@
-use ssh_jumper::model::SshForwarderEnd;
 use std::collections::HashMap;
 use std::time::SystemTime;
-use tokio::sync::oneshot::Receiver;
 
 use serde::Serialize;
 pub use serde_json::Map as JsonMap;
 pub use serde_json::Value as JsonValue;
 
 use crate::ssh;
-use crate::ssh::SshTunnel;
+use crate::ssh::SshOpts;
 use crate::AppError;
 
 mod mysql;
@@ -38,19 +36,10 @@ pub enum DriverType {
 pub struct AdapterOpts {
     pub driver: DriverType,
     pub host: String,
-    pub port: u16,
+    pub port: u32,
     pub user: String,
     pub password: String,
     pub filepath: String,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct SshOpts {
-    pub host: String,
-    pub keyfile: Option<String>,
-    pub password: String,
-    pub port: u16,
-    pub user: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -122,13 +111,13 @@ pub async fn connect_adapter(
     opts: AdapterOpts,
     ssh_opts: Option<SshOpts>,
 ) -> Result<AdapterEnum, AppError> {
-    let (driver_opts, _ssh_tunnel): (AdapterOpts, Option<SshTunnel>) = match ssh_opts
+    let driver_opts: AdapterOpts = match ssh_opts
     {
         Some(ssh_opts_actual) => {
-            let (new_opts, ssh_tunnel) = ssh::tunnel(opts, ssh_opts_actual).await?;
-            (new_opts, Some(ssh_tunnel))
+            let tunnel = ssh::jump(ssh_opts_actual, opts.host, opts.port).await.map_err(AppError::from)?;
+            AdapterOpts { host: "127.0.0.1".to_string(), port: tunnel.port() as u32, ..opts }
         }
-        None => (opts, None),
+        None => opts,
     };
 
     match driver_opts.driver {

@@ -6,7 +6,7 @@ use rand::{thread_rng, Rng};
 use serde::Serialize;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
-use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult, SshOpts};
+use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult};
 // use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Runtime, State, Window};
 use tauri::{State, Window};
 
@@ -36,6 +36,12 @@ impl AppError {
         }
     }
 }
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.error)
+    }
+}
+impl std::error::Error for AppError {}
 
 #[derive(Default)]
 pub struct AppState {
@@ -77,7 +83,7 @@ async fn adapter_connect(
     window: Window,
     title: String,
     driver_opts: AdapterOpts,
-    ssh_opts: Option<SshOpts>,
+    ssh_opts: Option<ssh::SshOpts>,
     state: State<'_, AppState>,
 ) -> Result<bool, AppError> {
     let adapter = connect_adapter(driver_opts, ssh_opts).await?;
@@ -110,7 +116,7 @@ async fn adapter_disconnect(
 #[tauri::command]
 async fn adapter_test(
     driver_opts: AdapterOpts,
-    ssh_opts: Option<SshOpts>,
+    ssh_opts: Option<ssh::SshOpts>,
 ) -> Result<String, AppError> {
     let mut adapter = connect_adapter(driver_opts, ssh_opts).await?;
     adapter.disconnect().await?;

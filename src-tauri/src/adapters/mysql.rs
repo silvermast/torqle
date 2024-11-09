@@ -16,7 +16,7 @@ where
 {
     let mysql_opts = OptsBuilder::default()
         .ip_or_hostname(opts.host)
-        .tcp_port(opts.port)
+        .tcp_port(opts.port as u16)
         .user(Some(opts.user))
         .pass(Some(opts.password))
         .prefer_socket(false);

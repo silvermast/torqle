@@ -6,11 +6,16 @@ services:
       - mysql
       - postgres
     ports:
-      - 10022:22
+      - 10022:2222
+    volumes:
+      - ./data/ssh_tunnel/sshd_config.conf:/config/ssh_host_keys/sshd_config.d/torqle.conf
     environment:
       # enable root login with optional password
       SUDO_ACCESS: true
+      PASSWORD_ACCESS: true
+      USER_NAME: torqle
       USER_PASSWORD: littlebuddy
+    
 
   mysql:
     image: bitnami/mysql
