@@ -36,7 +36,6 @@ tauri-plugin-fs = "2.0.1"
 tauri-plugin-shell = "2.0.1"
 tauri-plugin-dialog = "2.0.1"
 tauri-plugin-os = "2.0.1"
-ssh2 = "0.9.4"
 async-trait = "0.1.80"
 
 [features]

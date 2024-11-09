@@ -1,14 +1,17 @@
+#![allow(unreachable_code)]
+
 use anyhow::{Error, Result};
 use async_trait::async_trait;
 use tokio::net::TcpListener;
 use tokio::select;
 use std::{net::Ipv4Addr, sync::Arc};
-use russh::{client, ChannelId, Disconnect};
+use russh::{client, Disconnect};
 use russh_keys::{key, load_secret_key};
-use std::time::Duration;
 use std::net::SocketAddr;
 use client::Handler;
 use crate::AppError;
+
+// @see https://stackoverflow.com/questions/79137536/how-to-create-an-ssh-tunnel-with-russh-that-supports-multiple-connections
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct SshOpts {
@@ -123,9 +126,10 @@ pub async fn jump(ssh_opts: SshOpts, target_host: String, target_port: u32) -> R
                 });
             }
             if rx.has_changed()? {
-                disconnect(&tx, &ssh_client);
+                disconnect(&tx, &ssh_client).await?;
             }
         }
+        drop(local_listener);
         Ok::<(), Error>(())
     });
 

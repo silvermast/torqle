@@ -4,7 +4,6 @@ mod torqle_tests {
     use crate::ssh::SshOpts;
     use crate::ssh;
     use crate::adapters::{self, Adapter, AdapterOpts};
-    use crate::AppError;
 
     #[test]
     fn test_example() {
