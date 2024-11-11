@@ -1,9 +1,11 @@
-use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, App, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    App, Manager, WebviewUrl, WebviewWindowBuilder,
+};
 
 use crate::uuidv4;
 
 pub fn customize(app_handle: &mut App) -> Result<bool, tauri::Error> {
-
     let menu = match app_handle.menu() {
         Some(menu) => menu,
         None => Menu::new(app_handle)?,
@@ -11,24 +13,55 @@ pub fn customize(app_handle: &mut App) -> Result<bool, tauri::Error> {
 
     let menu_items = menu.items()?.clone();
 
-    let submenus = menu_items.iter()
+    let submenus = menu_items
+        .iter()
         .filter(|item| item.as_submenu().is_some())
         .map(|item| item.as_submenu().unwrap());
 
-    let file_menu = match submenus.clone().find(|item| item.text().unwrap_or_default() == "File") {
+    let file_menu = match submenus
+        .clone()
+        .find(|item| item.text().unwrap_or_default() == "File")
+    {
         Some(menu) => menu,
-        None => &Submenu::new(app_handle, "File", true)?
+        None => &Submenu::new(app_handle, "File", true)?,
     };
 
     file_menu.remove_at(0)?;
 
-    file_menu.insert_items(&[
-        &MenuItem::with_id(app_handle, "new_window", "New Window", true, Some("CommandOrControl+N"))?,
-        &MenuItem::with_id(app_handle, "new_tab", "New Tab", true, Some("CommandOrControl+T"))?,
-        &PredefinedMenuItem::separator(app_handle)?,
-        &MenuItem::with_id(app_handle, "close_tab", "Close Tab", true, Some("CommandOrControl+W"))?,
-        &MenuItem::with_id(app_handle, "close_window", "Close Window", true, Some("CommandOrControl+Shift+W"))?,
-    ], 0)?;
+    file_menu.insert_items(
+        &[
+            &MenuItem::with_id(
+                app_handle,
+                "new_window",
+                "New Window",
+                true,
+                Some("CommandOrControl+N"),
+            )?,
+            &MenuItem::with_id(
+                app_handle,
+                "new_tab",
+                "New Tab",
+                true,
+                Some("CommandOrControl+T"),
+            )?,
+            &PredefinedMenuItem::separator(app_handle)?,
+            &MenuItem::with_id(
+                app_handle,
+                "close_tab",
+                "Close Tab",
+                true,
+                Some("CommandOrControl+W"),
+            )?,
+            &MenuItem::with_id(
+                app_handle,
+                "close_window",
+                "Close Window",
+                true,
+                Some("CommandOrControl+Shift+W"),
+            )?,
+        ],
+        0,
+    )?;
 
     app_handle.set_menu(menu)?;
 
@@ -39,14 +72,14 @@ pub fn customize(app_handle: &mut App) -> Result<bool, tauri::Error> {
                 let url = WebviewUrl::App("/".into());
                 let id = uuidv4!();
                 let id_clone = id.clone();
-                let window_builder = WebviewWindowBuilder::new(app, id, url)
-                    .inner_size(1280.0, 800.0);
+                let window_builder =
+                    WebviewWindowBuilder::new(app, id, url).inner_size(1280.0, 800.0);
 
                 match window_builder.build() {
                     Ok(_) => println!("Opened window {}", id_clone),
                     Err(why) => println!("Unable to open window {}! {:?}", id_clone, why),
                 };
-            },
+            }
             "close_window" => {
                 app.webview_windows().iter_mut().for_each(|window| {
                     if window.1.is_focused().unwrap_or(false) {
@@ -54,14 +87,12 @@ pub fn customize(app_handle: &mut App) -> Result<bool, tauri::Error> {
                     }
                 });
             }
-            _ => ()
+            _ => (),
         }
     });
 
-    
     // default_menu.
 
-    
     // let file_menu_index = default_menu.items().iter()
     //     .
     //     .find(|item| item[0].is_submenu().unwrap().text() == "File")?;

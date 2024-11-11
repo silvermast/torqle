@@ -3,7 +3,8 @@ import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchFavorites, storeFavorites } from '~/services/Favorites.js';
 import { makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
-import { Connector } from '../connectors/Connector';
+
+export const defaultColor = '#4caf50';
 
 export default defineStore('favorites', () => {
 
@@ -14,7 +15,7 @@ export default defineStore('favorites', () => {
         selection.value = {
             id: null,
             name: '',
-            color: Connector.color,
+            color: defaultColor,
             canSsh: true,
             useSsh: false,
             sshOpts: {

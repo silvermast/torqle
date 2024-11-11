@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use sqlx::sqlite::{SqlitePool};
-use sqlx::{Column, Row, TypeInfo};
 pub use serde_json::Value as JsonValue;
+use sqlx::sqlite::SqlitePool;
+use sqlx::{Column, Row, TypeInfo};
 
 use super::{Adapter, AdapterOpts, QueryResult};
 use crate::AppError;
@@ -11,12 +11,17 @@ pub async fn connect(opts: AdapterOpts) -> Result<SQLiteAdapter, AppError>
 where
     SQLiteAdapter: Sized,
 {
-    let pool = SqlitePool::connect(&opts.filepath.as_str()).await.map_err(AppError::from)?;
+    let pool = SqlitePool::connect(&opts.filepath.as_str())
+        .await
+        .map_err(AppError::from)?;
 
     let _conn = pool.acquire().await.map_err(AppError::from)?;
 
     // test the pool connection
-    sqlx::query("SELECT name FROM sqlite_master LIMIT 1").fetch_one(&pool).await.map_err(AppError::from)?;
+    sqlx::query("SELECT name FROM sqlite_master LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .map_err(AppError::from)?;
 
     Ok(SQLiteAdapter { pool: pool })
 }
@@ -54,23 +59,23 @@ impl Adapter for SQLiteAdapter {
                     "INTEGER" => {
                         let v: i32 = row.get(&i);
                         JsonValue::from(v)
-                    },
+                    }
                     "TEXT" => {
                         let v: String = row.get(&i);
                         JsonValue::from(v)
-                    },
+                    }
                     "REAL" => {
                         let v: f64 = row.get(&i);
                         JsonValue::from(v)
-                    },
+                    }
                     "DATETIME" => {
                         let v: String = row.get(&i);
                         JsonValue::from(v)
-                    },
+                    }
                     _ => {
                         println!("Unable to decode '{}'", column.type_info().name());
                         JsonValue::Null
-                    },
+                    }
                 };
 
                 map.insert(column.name().to_string(), value);

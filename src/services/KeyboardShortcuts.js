@@ -1,7 +1,12 @@
 // import { register, unregister } from '@tauri-apps/plugin-global-shortcut';
 import { platform } from '@tauri-apps/plugin-os';
 
-const isMac = platform() === 'macos';
+let isMac = false;
+try {
+    isMac = platform() === 'macos';
+} catch (e) {
+    console.error('Error determining platform:', e);
+}
 const prefersCmd = isMac;
 
 document.addEventListener('keydown', (e) => {

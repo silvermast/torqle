@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import QueryResult from '~/services/QueryResult';
+import { defaultColor } from '~/store/main.js';
 
 /**
  * @typedef QueryResult
@@ -11,7 +12,7 @@ import QueryResult from '~/services/QueryResult';
 
 class Connector {
     options = {};
-    color = '#4caf50';
+    color = defaultColor;
 
     constructor({ color, ...options }) {
         if (color) {

@@ -111,11 +111,16 @@ pub async fn connect_adapter(
     opts: AdapterOpts,
     ssh_opts: Option<SshOpts>,
 ) -> Result<AdapterEnum, AppError> {
-    let driver_opts: AdapterOpts = match ssh_opts
-    {
+    let driver_opts: AdapterOpts = match ssh_opts {
         Some(ssh_opts_actual) => {
-            let tunnel = ssh::jump(ssh_opts_actual, opts.host, opts.port).await.map_err(AppError::from)?;
-            AdapterOpts { host: "127.0.0.1".to_string(), port: tunnel.port() as u32, ..opts }
+            let tunnel = ssh::jump(ssh_opts_actual, opts.host, opts.port)
+                .await
+                .map_err(AppError::from)?;
+            AdapterOpts {
+                host: "127.0.0.1".to_string(),
+                port: tunnel.port() as u32,
+                ..opts
+            }
         }
         None => opts,
     };

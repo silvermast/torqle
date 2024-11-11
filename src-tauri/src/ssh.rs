@@ -1,15 +1,15 @@
 #![allow(unreachable_code)]
 
+use crate::AppError;
 use anyhow::{Error, Result};
 use async_trait::async_trait;
-use tokio::net::TcpListener;
-use tokio::select;
-use std::{net::Ipv4Addr, sync::Arc};
+use client::Handler;
 use russh::{client, Disconnect};
 use russh_keys::{key, load_secret_key};
 use std::net::SocketAddr;
-use client::Handler;
-use crate::AppError;
+use std::{net::Ipv4Addr, sync::Arc};
+use tokio::net::TcpListener;
+use tokio::select;
 
 // @see https://stackoverflow.com/questions/79137536/how-to-create-an-ssh-tunnel-with-russh-that-supports-multiple-connections
 
@@ -22,18 +22,16 @@ pub struct SshOpts {
     pub user: String,
 }
 
-pub struct SshHandler {
-}
+pub struct SshHandler {}
 #[async_trait]
 impl Handler for SshHandler {
-    type Error = Error; 
+    type Error = Error;
     async fn check_server_key(&mut self, _: &key::PublicKey) -> Result<bool, Self::Error> {
         Ok(true)
     }
 }
 
 async fn connect(ssh_opts: SshOpts) -> Result<client::Handle<SshHandler>, Error> {
-    
     let config = client::Config {
         // custom configs go here. possibly add in from ssh_opts
         ..<_>::default()
@@ -45,7 +43,10 @@ async fn connect(ssh_opts: SshOpts) -> Result<client::Handle<SshHandler>, Error>
         SshHandler {},
     )
     .await?;
-    println!("DEBUG: Connected to jump host {}:{}", ssh_opts.host, ssh_opts.port);
+    println!(
+        "DEBUG: Connected to jump host {}:{}",
+        ssh_opts.host, ssh_opts.port
+    );
 
     // Create a session to the jump host
     let ssh_user = ssh_opts.user.clone();
@@ -62,16 +63,21 @@ async fn connect(ssh_opts: SshOpts) -> Result<client::Handle<SshHandler>, Error>
             let key_file = load_secret_key(ssh_key_file, password_option)?;
             ssh_client
                 .authenticate_publickey(ssh_user, Arc::new(key_file))
-                .await.map_err(|e| {
+                .await
+                .map_err(|e| {
                     eprintln!("Failed to authenticate with user and key: {}", e);
                     AppError::from("Failed to authenticate with the SSH Server")
                 })?
         }
         None => {
-            println!("DEBUG: Authenticating with password {}:{}", ssh_user, ssh_password);
+            println!(
+                "DEBUG: Authenticating with password {}:{}",
+                ssh_user, ssh_password
+            );
             ssh_client
                 .authenticate_password(ssh_user, ssh_password)
-                .await.map_err(|e| {
+                .await
+                .map_err(|e| {
                     eprintln!("Failed to authenticate with user and password: {}", e);
                     AppError::from("Failed to authenticate with the SSH Server")
                 })?
@@ -81,17 +87,21 @@ async fn connect(ssh_opts: SshOpts) -> Result<client::Handle<SshHandler>, Error>
     if !is_authenticated {
         return Err(Error::msg("Failed to authenticate with the jump host"));
     }
-    
+
     Ok(ssh_client)
 }
 
-pub async fn jump(ssh_opts: SshOpts, target_host: String, target_port: u32) -> Result<SocketAddr, Error> {
+pub async fn jump(
+    ssh_opts: SshOpts,
+    target_host: String,
+    target_port: u32,
+) -> Result<SocketAddr, Error> {
     let ssh_client = connect(ssh_opts).await?;
 
     let local_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
     let local_addr = local_listener.local_addr()?;
     let local_port = local_addr.port();
-    
+
     println!("DEBUG: Local listener bound to port {}", local_port);
 
     let (tx, rx) = tokio::sync::watch::channel::<u8>(1);
@@ -99,13 +109,14 @@ pub async fn jump(ssh_opts: SshOpts, target_host: String, target_port: u32) -> R
     tokio::spawn(async move {
         loop {
             let mut rx_clone = rx.clone();
-            
+
             if let Ok((mut local_stream, _)) = local_listener.accept().await {
-                let ssh_channel = ssh_client.channel_open_direct_tcpip(
-                        target_host.clone(), 
-                        target_port.into(), 
-                        local_addr.ip().to_string(), 
-                        local_port as u32, 
+                let ssh_channel = ssh_client
+                    .channel_open_direct_tcpip(
+                        target_host.clone(),
+                        target_port.into(),
+                        local_addr.ip().to_string(),
+                        local_port as u32,
                     )
                     .await?;
                 println!("DEBUG: Channel open to target host");
@@ -137,10 +148,12 @@ pub async fn jump(ssh_opts: SshOpts, target_host: String, target_port: u32) -> R
 }
 
 async fn disconnect(
-    tx: &tokio::sync::watch::Sender<u8>, 
+    tx: &tokio::sync::watch::Sender<u8>,
     ssh_client: &client::Handle<SshHandler>,
 ) -> Result<()> {
     tx.send(0)?;
-    ssh_client.disconnect(Disconnect::ByApplication, "Disconnected by User", "none").await?;
+    ssh_client
+        .disconnect(Disconnect::ByApplication, "Disconnected by User", "none")
+        .await?;
     Ok(())
 }

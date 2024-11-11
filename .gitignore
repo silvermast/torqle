@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 *-wal
 *-shm
+
+# Secrets
+torqle.key
+torqle.key*
+!torqle.key.pub

@@ -2,16 +2,16 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(async_fn_in_trait)]
 
+use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult};
 use rand::{thread_rng, Rng};
 use serde::Serialize;
 use std::{collections::HashMap, sync::Mutex};
 use users::get_current_username;
-use adapters::{connect_adapter, Adapter, AdapterEnum, AdapterOpts, QueryResult};
 // use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem, Submenu}, Runtime, State, Window};
 use tauri::{State, Window};
 
-pub mod menu;
 pub mod adapters;
+pub mod menu;
 pub mod ssh;
 pub mod tests;
 
@@ -21,7 +21,6 @@ macro_rules! uuidv4 {
         uuid::Uuid::new_v4().to_string()
     };
 }
-
 
 #[derive(Serialize, Debug)]
 pub struct AppError {
@@ -45,7 +44,7 @@ impl std::error::Error for AppError {}
 
 #[derive(Default)]
 pub struct AppState {
-    adapters: Mutex<HashMap<String, AdapterEnum>>
+    adapters: Mutex<HashMap<String, AdapterEnum>>,
 }
 impl AppState {
     /**
@@ -58,7 +57,9 @@ impl AppState {
         let map_mutex = self.adapters.try_lock().map_err(AppError::from)?;
         match map_mutex.get(&uuid) {
             Some(adapter) => Ok(adapter.clone()),
-            None => Err(AppError::from("Unable to get_adapter. No connection bound to the window!"))
+            None => Err(AppError::from(
+                "Unable to get_adapter. No connection bound to the window!",
+            )),
         }
     }
     pub fn set_adapter(&self, window: &Window, adapter: AdapterEnum) -> Result<bool, AppError> {
@@ -74,7 +75,9 @@ impl AppState {
             .try_lock()
             .map_err(AppError::from)?
             .remove(&uuid)
-            .ok_or(AppError::from("Unable to remove_adapter. No connection bound to the window!"))
+            .ok_or(AppError::from(
+                "Unable to remove_adapter. No connection bound to the window!",
+            ))
     }
 }
 
@@ -103,10 +106,7 @@ async fn adapter_query(
 }
 
 #[tauri::command]
-async fn adapter_disconnect(
-    window: Window,
-    state: State<'_, AppState>,
-) -> Result<bool, AppError> {
+async fn adapter_disconnect(window: Window, state: State<'_, AppState>) -> Result<bool, AppError> {
     let mut adapter: AdapterEnum = state.remove_adapter(&window)?;
     adapter.disconnect().await?;
     window.set_title("New Connection").unwrap_or_default();
@@ -160,6 +160,7 @@ fn generate_aes_256_key() -> String {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -182,61 +183,60 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-
 // .menu(|handle| {
-        //     let new_window_menu_item = MenuItem::with_id(handle, "new_window", "New Window", true, Some("CommandOrControl+N"))?;
-        //     // let close_window = PredefinedMenuItem::close_window(handle, None)?;
+//     let new_window_menu_item = MenuItem::with_id(handle, "new_window", "New Window", true, Some("CommandOrControl+N"))?;
+//     // let close_window = PredefinedMenuItem::close_window(handle, None)?;
 
-        //     let menu = Menu::with_items(handle, &[
-        //         &Submenu::with_items(
-        //             handle,
-        //             "File",
-        //             true,
-        //             &[
-        //                 &new_window_menu_item,
-        //                 // &close_window,
-        //                 &PredefinedMenuItem::quit(handle, None)?
-        //             ],
-        //         )?,
-        //         &Submenu::with_items(
-        //             handle,
-        //             "Edit",
-        //             true,
-        //             &[
-        //                 &PredefinedMenuItem::undo(handle, None)?,
-        //                 &PredefinedMenuItem::redo(handle, None)?,
-        //                 &PredefinedMenuItem::copy(handle, None)?,
-        //                 &PredefinedMenuItem::paste(handle, None)?,
-        //                 &PredefinedMenuItem::cut(handle, None)?,
-        //                 &PredefinedMenuItem::select_all(handle, None)?,
-        //             ],
-        //         )?,
-        //         &Submenu::with_items(
-        //             handle,
-        //             "Window",
-        //             true,
-        //             &[
-        //                 &PredefinedMenuItem::maximize(handle, None)?,
-        //                 &PredefinedMenuItem::minimize(handle, None)?,
-        //                 &PredefinedMenuItem::fullscreen(handle, None)?,
-        //                 &PredefinedMenuItem::hide(handle, None)?,
-        //                 &PredefinedMenuItem::hide_others(handle, None)?,
-        //                 &PredefinedMenuItem::show_all(handle, None)?,
-        //             ],
-        //         )?
-        //     ]);
+//     let menu = Menu::with_items(handle, &[
+//         &Submenu::with_items(
+//             handle,
+//             "File",
+//             true,
+//             &[
+//                 &new_window_menu_item,
+//                 // &close_window,
+//                 &PredefinedMenuItem::quit(handle, None)?
+//             ],
+//         )?,
+//         &Submenu::with_items(
+//             handle,
+//             "Edit",
+//             true,
+//             &[
+//                 &PredefinedMenuItem::undo(handle, None)?,
+//                 &PredefinedMenuItem::redo(handle, None)?,
+//                 &PredefinedMenuItem::copy(handle, None)?,
+//                 &PredefinedMenuItem::paste(handle, None)?,
+//                 &PredefinedMenuItem::cut(handle, None)?,
+//                 &PredefinedMenuItem::select_all(handle, None)?,
+//             ],
+//         )?,
+//         &Submenu::with_items(
+//             handle,
+//             "Window",
+//             true,
+//             &[
+//                 &PredefinedMenuItem::maximize(handle, None)?,
+//                 &PredefinedMenuItem::minimize(handle, None)?,
+//                 &PredefinedMenuItem::fullscreen(handle, None)?,
+//                 &PredefinedMenuItem::hide(handle, None)?,
+//                 &PredefinedMenuItem::hide_others(handle, None)?,
+//                 &PredefinedMenuItem::show_all(handle, None)?,
+//             ],
+//         )?
+//     ]);
 
-        //     handle.on_menu_event(move |app, event| {
-        //         if event.id() == new_window_menu_item.id() {
-        //             // emit a window event to the frontend
-        //             let window_id = format!("{}", Uuid::new_v4());
-        //             tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()))
-        //                 .title("New Connection")
-        //                 .inner_size(1280.0, 800.0)
-        //                 .build()
-        //                 .unwrap();
-        //         }
-        //     });
+//     handle.on_menu_event(move |app, event| {
+//         if event.id() == new_window_menu_item.id() {
+//             // emit a window event to the frontend
+//             let window_id = format!("{}", Uuid::new_v4());
+//             tauri::WebviewWindowBuilder::new(app, window_id, tauri::WebviewUrl::App("index.html".into()))
+//                 .title("New Connection")
+//                 .inner_size(1280.0, 800.0)
+//                 .build()
+//                 .unwrap();
+//         }
+//     });
 
-        //     menu
-        // })
+//     menu
+// })

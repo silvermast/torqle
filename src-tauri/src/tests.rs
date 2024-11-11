@@ -1,9 +1,9 @@
 #![allow(unused_must_use)]
 #[cfg(test)]
 mod torqle_tests {
-    use crate::ssh::SshOpts;
-    use crate::ssh;
     use crate::adapters::{self, Adapter, AdapterOpts};
+    use crate::ssh;
+    use crate::ssh::SshOpts;
 
     #[test]
     fn test_example() {
@@ -18,12 +18,14 @@ mod torqle_tests {
             ..<_>::default()
         };
         let mut adapter = adapters::connect_adapter(opts, None).await.unwrap();
-        let result = adapter.query("SELECT * FROM albums LIMIT 10".to_string(), None).await.unwrap();
+        let result = adapter
+            .query("SELECT * FROM albums LIMIT 10".to_string(), None)
+            .await
+            .unwrap();
         adapter.disconnect().await;
 
         assert_eq!("10".to_string(), result.num_rows);
     }
-
 
     #[tokio::test]
     async fn test_ssh_tunnel_password() {
@@ -35,7 +37,9 @@ mod torqle_tests {
             keyfile: None,
         };
 
-        let tunnel = ssh::jump(ssh_opts, "mysql".to_string(), 3306).await.unwrap();
+        let tunnel = ssh::jump(ssh_opts, "mysql".to_string(), 3306)
+            .await
+            .unwrap();
         assert!(tunnel.port() > 0);
     }
 
@@ -56,8 +60,13 @@ mod torqle_tests {
             password: "littlebuddy".to_string(),
             keyfile: None,
         };
-        let mut adapter = adapters::connect_adapter(adapter_opts, Some(ssh_opts)).await.unwrap();
-        let result = adapter.query("SELECT NOW()".to_string(), None).await.unwrap();
+        let mut adapter = adapters::connect_adapter(adapter_opts, Some(ssh_opts))
+            .await
+            .unwrap();
+        let result = adapter
+            .query("SELECT NOW()".to_string(), None)
+            .await
+            .unwrap();
         adapter.disconnect().await;
 
         assert_eq!("1".to_string(), result.num_rows);

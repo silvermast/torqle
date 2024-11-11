@@ -113,8 +113,7 @@ fn parse_row(row: Row) -> Result<HashMap<String, JsonValue>, AppError> {
                     Ok(datetime) => JsonValue::String(datetime.format("%T").to_string()),
                     Err(_) => JsonValue::from("Invalid Time"),
                 }
-            }
-            // _ => JsonValue::from("Unsupported type"),
+            } // _ => JsonValue::from("Unsupported type"),
         };
         map.insert(field, value);
     }

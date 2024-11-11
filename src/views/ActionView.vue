@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
 /**
  * Page Initialization
  */
-document.documentElement.style.setProperty('--connection-color', `${color}60`);
+document.documentElement.style.setProperty('--connection-color', `${color.value}60`);
 
 loadDatabases();
 loadTables();

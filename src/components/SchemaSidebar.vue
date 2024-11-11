@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
     <div class="sidebar-container">
         <v-autocomplete class="mx-2 mt-2" ref="elDatabaseSelector" v-model="selectedDatabaseComputed"
             :items="props.databases" item-title="Database" hide-details variant="solo" rounded density="compact"
-            label="Select Database" no-data-text="No databases found" single-line :disabled="!props.databases?.length">
+            label="Select Database" no-data-text="No databases found" single-line :disabled="!props.databases?.length" auto-select-first>
             <template v-slot:append>
                 <v-btn @click="emit('reloadSchemas')" class="mr-1 ml-0" size="x-small" variant="tonal"
                     icon="mdi-refresh" title="Refresh Database List" rounded />
@@ -62,6 +62,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped lang="scss">
+:deep(.v-autocomplete__content) {
+    border: 2px solid var(--connection-color);
+}
+
 .sidebar-container {
     width: inherit;
     position: relative;

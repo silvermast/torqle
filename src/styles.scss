@@ -58,4 +58,8 @@ body {
       caret-color: #666666;
     }
   }
+
+  .v-autocomplete__content {
+    border: 2px solid var(--connection-color);
+  }
 }
