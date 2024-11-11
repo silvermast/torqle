@@ -1,6 +1,6 @@
 [package]
 name = "Torqle"
-version = "0.2.0"
+version = "0.4.0"
 description = "Tauri Object Relational Query Language Editor"
 authors = ["jason@silvermast.io"]
 license = "MIT"
@@ -32,7 +32,7 @@ rsa = '*'
 # async-sqlite = { version = "*", default-features = false }
 sqlx = { version = '0.8', features = ["runtime-tokio", "sqlite"] }
 rusqlite = "*"
-tauri-plugin-fs = "2.0.1"
+tauri-plugin-fs = "2.0.2"
 tauri-plugin-shell = "2.0.1"
 tauri-plugin-dialog = "2.0.1"
 tauri-plugin-os = "2.0.1"

@@ -1,7 +1,7 @@
 {
   "name": "torqle",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "os": ["darwin", "linux", "windows"],
   "cpu": ["x64", "arm64"],

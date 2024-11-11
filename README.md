@@ -70,3 +70,7 @@ If using Homebrew:
 See https://github.com/tauri-apps/tauri/issues/10702
 
 `WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev`
+
+### Ensure Synchronized Tauri Version
+Check the tauri version in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`. The tauri version of each plugin needs to line up with
+the corresponding plugins installed in `package.json` down to the exact patch version.

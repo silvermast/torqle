@@ -9,6 +9,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 
 import useFavoritesStore from '~/store/main.js';
 
+import { Connector } from '~/connectors/Connector.js';
 import { TestConnector } from '~/connectors/TestConnector.js';
 import { MysqlConnector } from '~/connectors/MysqlConnector.js';
 import { SqliteConnector } from '~/connectors/SqliteConnector.js';
@@ -37,7 +38,7 @@ const isConnecting = ref(false);
 const isOpeningFile = ref(false);
 
 const driver = computed(() => drivers.find(d => d.label === connection.value.driverName));
-const selectedColor = computed(() => connection.value.color ?? 'primary');
+const selectedColor = computed(() => connection.value.color ?? Connector.color);
 const lastError = ref();
 
 const elFavoritesList = ref();
@@ -107,8 +108,8 @@ async function openSshKeyDialog() {
             </v-menu>
           </v-col>
           <v-col cols="6">
-            <v-text-field density="compact" v-model="connection.label" variant="outlined"
-              label="Connection Label"></v-text-field>
+            <v-text-field density="compact" v-model="connection.name" variant="outlined" required
+              label="Connection Name"></v-text-field>
           </v-col>
           <v-col cols="4">
             <v-select density="compact" v-model="connection.driverName" :items="drivers" item-title="label"

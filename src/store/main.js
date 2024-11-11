@@ -3,10 +3,9 @@ import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchFavorites, storeFavorites } from '~/services/Favorites.js';
 import { makeHappySnack, makeSpicySnack } from '~/components/Snacks.vue';
+import { Connector } from '../connectors/Connector';
 
 export default defineStore('favorites', () => {
-
-    const defaultColor = '#2196f3'; // vuetify primary
 
     const selection = ref({});
     const favorites = ref([]);
@@ -14,8 +13,8 @@ export default defineStore('favorites', () => {
     function setDefaultSelection() {
         selection.value = {
             id: null,
-            title: '',
-            color: defaultColor,
+            name: '',
+            color: Connector.color,
             canSsh: true,
             useSsh: false,
             sshOpts: {
@@ -25,7 +24,7 @@ export default defineStore('favorites', () => {
                 password: '',
                 keyfile: null,
             },
-            driverName: /localhost:1420/.test(window.location) ? 'Test' : null,
+            driverName: null,
             driverOpts: {},
         }
     }

@@ -11,7 +11,7 @@ import QueryResult from '~/services/QueryResult';
 
 class Connector {
     options = {};
-    color = '#2196f3';
+    color = '#4caf50';
 
     constructor({ color, ...options }) {
         if (color) {
