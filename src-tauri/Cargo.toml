@@ -1,36 +1,26 @@
 [package]
 name = "Torqle"
-version = "0.4.0"
+version = "0.4.1"
 description = "Tauri Object Relational Query Language Editor"
 authors = ["jason@silvermast.io"]
 license = "MIT"
 repository = "https://github.com/silvermast/torqle"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
+[build-dependencies.tauri-build]
+version = "2"
+features = []
 
 [dependencies]
-tauri = { version = "2.0.1", features = [] }
-anyhow = { version = "1", features = ["backtrace"] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = { version = "1.0.129", features = ["raw_value"] }
-uuid = { version = "1.3.1", features = ["v4", "fast-rng"] }
 mysql_async = "*"
-chrono = { version = "*", features = ["serde"] }
-russh = '*'
-russh-keys = '*'
-futures = '*'
-tokio = { version = "1.41", features = ["macros", "rt-multi-thread", "io-util"] }
-keytar = '*'
-users = '*'
-rand = '*'
-hex = '*'
-rsa = '*'
-# async-sqlite = { version = "*", default-features = false }
-sqlx = { version = '0.8', features = ["runtime-tokio", "sqlite"] }
+russh = "*"
+russh-keys = "*"
+futures = "*"
+keytar = "*"
+users = "*"
+rand = "*"
+hex = "*"
+rsa = "*"
 rusqlite = "*"
 tauri-plugin-fs = "2.0.2"
 tauri-plugin-shell = "2.0.1"
@@ -38,9 +28,39 @@ tauri-plugin-dialog = "2.0.1"
 tauri-plugin-os = "2.0.1"
 async-trait = "0.1.80"
 
+[dependencies.tauri]
+version = "2.0.1"
+features = []
+
+[dependencies.anyhow]
+version = "1"
+features = ["backtrace"]
+
+[dependencies.serde]
+version = "1.0.210"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1.0.129"
+features = ["raw_value"]
+
+[dependencies.uuid]
+version = "1.3.1"
+features = ["v4", "fast-rng"]
+
+[dependencies.chrono]
+version = "*"
+features = ["serde"]
+
+[dependencies.tokio]
+version = "1.41"
+features = ["macros", "rt-multi-thread", "io-util"]
+
+[dependencies.sqlx]
+version = "0.8"
+features = ["runtime-tokio", "sqlite"]
+
 [features]
-# this feature is used for production builds or when `devPath` points to the filesystem
-# DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]

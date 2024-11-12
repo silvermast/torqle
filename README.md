@@ -21,7 +21,7 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 ## Getting Started
 
 - Follow the instructions for installing [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/) for your system.
-- Then, simply run `npm ci && npm run tauri dev` to get started!
+- Then, simply run `make dev` to get started!
 
 ### Local Development Containers
 

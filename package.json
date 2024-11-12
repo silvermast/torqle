@@ -1,7 +1,7 @@
 {
   "name": "torqle",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "os": [
     "darwin",
@@ -20,8 +20,7 @@
     "tauri": "tauri",
     "tauri:dev": "RUST_BACKTRACE=1 tauri dev",
     "tauri:icon": "npm run tauri icon",
-    "tauri:test": "npm run cargo test ",
-    "tauri:build": "export TAURI_SIGNING_PRIVATE_KEY='torqle.key' && tauri build",
+    "tauri:test": "npm run cargo test",
     "cargo": "cd ./src-tauri && cargo",
     "seed": "concurrently \"npm run seed:mongo\" \"npm run seed:mysql\" \"npm run seed:postgres\"",
     "seed:mongo": "node data/docker-seed-mongo.js",

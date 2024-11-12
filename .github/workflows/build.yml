@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        targets: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - id: setup
+      run: cat node_version=$(cat .nvmrc) >> ${GITHUB_OUTPUT}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ steps.setup.outputs.node_version }}
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run build
+      run: npm run tauri:build
+
+    - name: Upload build
+      run: |
+        aws s3 cp ./src-tauri/target/release/bundle.tar.gz s3://${S3_BUCKET}/releases/${BUILD_TARGET}/${BUILD_ARCH}/${BUILD_VERSION}
