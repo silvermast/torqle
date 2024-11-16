@@ -7,17 +7,20 @@ import Snacks from './components/Snacks.vue';
 
 let connector = ref();
 
-function connect($event) {
-  console.log('received connect', $event);
-  connector.value = $event;
-  document.title = $event.title ?? `${$event.type} Connection`;
-  getCurrentWindow().setTitle(document.title);
+const defaultTitle = 'New Connection';
+
+function connect($connector) {
+  console.log('received connect', $connector);
+  connector.value = $connector;
+  getCurrentWindow().setTitle($connector.name ?? `${$connector.type} Connection`);
 }
 function disconnect($event) {
   console.log('received disconnect', $event);
   connector.value = null;
-  getCurrentWindow().setTitle('New Connection');
+  getCurrentWindow().setTitle(defaultTitle);
 }
+
+getCurrentWindow().setTitle(defaultTitle);
 
 </script>
 

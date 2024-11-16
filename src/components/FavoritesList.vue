@@ -30,7 +30,7 @@ store.loadFavorites();
         <v-list-item :active="!store.selection.id" @click="store.setDefaultSelection" prepend-icon="mdi-plus">
             New Connection
         </v-list-item>
-        <v-list-item v-for="favorite in store.favorites" :key="favorite.id" :title="favorite.label"
+        <v-list-item v-for="favorite in store.favorites" :key="favorite.id" :title="store.getFavoriteName(favorite)"
             :active="favorite.id === store.selection.id" @click="setOrConnect(favorite)">
             <template v-slot:prepend>
                 <v-icon :color="favorite.color ?? 'gray'" icon="mdi-circle" />

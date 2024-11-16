@@ -48,6 +48,10 @@ export default defineStore('favorites', () => {
         }
     }
 
+    function getFavoriteName(favorite) {
+        return favorite.name ?? favorite.label ?? favorite.title;
+    }
+
     async function deleteFavorite(favorite) {
         if (selection.value.id === favorite.id) {
             setDefaultSelection();
@@ -58,7 +62,7 @@ export default defineStore('favorites', () => {
 
     async function dupeFavorite(favorite) {
         const favoriteIndex = favorites.value.indexOf(favorite);
-        const newFavorite = { ...favorite, id: uuidv4(), label: `${favorite.label} - Copy` };
+        const newFavorite = { ...favorite, id: uuidv4(), name: `${favorite.name} - Copy` };
         favorites.value.splice(favoriteIndex + 1, 0, newFavorite);
         await storeFavorites(favorites.value);
     }
@@ -83,5 +87,5 @@ export default defineStore('favorites', () => {
 
     setDefaultSelection();
 
-    return { selection, favorites, loadFavorites, saveFavorite, setDefaultSelection, setSelection, dupeFavorite, deleteFavorite };
+    return { selection, favorites, loadFavorites, saveFavorite, setDefaultSelection, setSelection, dupeFavorite, deleteFavorite, getFavoriteName };
 });

@@ -21,6 +21,10 @@ class Connector {
         this.options = options;
     }
 
+    get name() {
+        return this.options.name ?? this.options.title ?? this.options.label;
+    }
+
     get dbHost() {
         return this.options?.driverOpts?.host;
     }
@@ -32,6 +36,7 @@ class Connector {
     get connectOpts() {
         return {
             ...this.options,
+            title: this.name,
             driverOpts: {
                 driver: this.options.driverName,
                 ...this.options.driverOpts,
