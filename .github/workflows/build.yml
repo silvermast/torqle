@@ -4,33 +4,64 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic Version'
+        required: true
+        type: string
+        default: '0.0.0'
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        targets: [10, 12, 14]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu, windows, macos]
+        include:
+          - os: macos
+            armTarget: aarch64-apple-darwin
+            x86Target: x86_64-apple-darwin
+          - os: windows
+            armTarget: aarch64-pc-windows-msvc
+            x86Target: x86_64-pc-windows-msvc
+          - os: ubuntu
+    
+    runs-on: ${{ matrix.os }}-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - id: setup
-      run: cat node_version=$(cat .nvmrc) >> ${GITHUB_OUTPUT}
+    - id: set-version
+      run: VERSION=$(echo ${{ github.ref_name || inputs.version }} | sed 's|v||g') make set-version
 
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: ${{ steps.setup.outputs.node_version }}
+        node-version-file: .nvmrc
 
     - name: Install dependencies
       run: npm ci
 
-    - name: Run build
-      run: npm run tauri:build
+    - name: Build ARM
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+      run: npm run tauri build -- --target ${{ matrix.armTarget }}
+
+    - name: Build x86
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+      run: npm run tauri build -- --target ${{ matrix.x86Target }}
 
     - name: Upload build
-      run: |
-        aws s3 cp ./src-tauri/target/release/bundle.tar.gz s3://${S3_BUCKET}/releases/${BUILD_TARGET}/${BUILD_ARCH}/${BUILD_VERSION}
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: make list-build-results | xargs -I % aws s3 cp % s3://${{ secrets.S3_BUCKET }}/releases/${{ matrix.os }}/

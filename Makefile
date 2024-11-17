@@ -18,14 +18,21 @@ build-target:
 	rustup target add $(TARGET)
 	export TAURI_SIGNING_PRIVATE_KEY="$(cat ./torqle.key)" && export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" && npm run tauri build -- --target $(TARGET)
 
-build-mac-arm: 
+macos-build:
 	TARGET=aarch64-apple-darwin make build-target
-
-build-mac-x86: 
 	TARGET=x86_64-apple-darwin make build-target
 
+linux-build:
+	TARGET=x86_64-unknown-linux-gnu make build-target
+
+list-build-results:
+	@find src-tauri/target -type f -name "*.dmg"
+	@find src-tauri/target -type f -name "*.deb"
+	@find src-tauri/target -type f -name "*.rpm"
+	@find src-tauri/target -type f -name "*.exe"
+
 list-targets:
-	rustc --print target-list
+	@rustc --print target-list | grep -E '^(x86_64|aarch64)' | grep -E '(darwin|windows|linux)'
 
 set-version:
 	test -n $(VERSION) || (echo "VERSION is not set" && exit 1)
