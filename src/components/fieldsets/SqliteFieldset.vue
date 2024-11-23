@@ -19,8 +19,7 @@ const isOpeningFile = ref(false);
 async function openDialog() {
   isOpeningFile.value = true;
   try {
-    const fileHandle = await open();
-    data.value.filepath = fileHandle.path;
+    data.value.filepath = await open();
   } catch (e) {
     makeSpicySnack(e);
     console.error(e);

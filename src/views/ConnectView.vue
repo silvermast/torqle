@@ -81,8 +81,12 @@ async function connect() {
 
 async function openSshKeyDialog() {
   isOpeningFile.value = true;
-  const fileHandle = await open();
-  connection.value.sshOpts.keyfile = fileHandle.path;
+  try {
+    connection.value.sshOpts.keyfile = await open();
+  } catch (e) {
+    makeSpicySnack(e);
+    console.log(e);
+  }
   isOpeningFile.value = false;
 }
 
