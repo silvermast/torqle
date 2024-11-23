@@ -23,6 +23,15 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 - Follow the instructions for installing [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/) for your system.
 - Then, simply run `make dev` to get started!
 
+
+## Development & Contribution
+When working on GitHub issues, you can tag the issue in your commits similar to Jira just by adding #<ticketNumber> in the commit message. There are also certain flags which will auto-transition the ticket.
+
+For example:
+partial work on #5 will attach your commit to this issue.
+Fixes #5 will do the same, but also mark this issue as "Fixed"
+
+
 ### Local Development Containers
 
 The project includes a docker-compose file specifically for local development. Run `docker-compose up -d` to initialize them.
